@@ -29,13 +29,12 @@
       background-color: var(--bg);
       color: var(--label);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      padding-bottom: 48px; /* Telefon alt çubuk boşluğu */
+      padding-bottom: 48px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    /* Üst Başlık */
     .header {
       background: var(--card-bg);
       padding: 14px 16px;
@@ -60,7 +59,6 @@
       border-radius: 6px;
     }
 
-    /* Yayın Durum Çubuğu */
     .status-bar {
       background: var(--danger);
       color: white;
@@ -79,7 +77,6 @@
       font-size: 12px;
     }
 
-    /* Sekmeler */
     .tabs {
       display: flex;
       background: #181818;
@@ -96,7 +93,6 @@
       color: var(--label-secondary);
       font-size: 15px;
       font-weight: 600;
-      transition: all 0.2s ease;
     }
 
     .tab.active {
@@ -105,7 +101,6 @@
       border-bottom: 3px solid var(--accent);
     }
 
-    /* İçerik Alanı */
     .content {
       padding: 16px;
       flex: 1;
@@ -127,7 +122,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Form ve Elemanlar */
     .form-group {
       display: flex;
       flex-direction: column;
@@ -160,7 +154,6 @@
       font-size: 14px;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.2s;
     }
 
     button:hover {
@@ -177,7 +170,6 @@
       color: var(--accent);
     }
 
-    /* Yayın Kartı */
     .stream-card {
       background: var(--card-bg);
       padding: 14px;
@@ -231,7 +223,6 @@
   </div>
 
   <div class="content">
-    <!-- Keşfet Sekmesi -->
     <div id="discoverPanel" class="panel active">
       <h3>Aktif Canlı Yayınlar</h3>
       <div id="streamsList">
@@ -239,7 +230,6 @@
       </div>
     </div>
 
-    <!-- Yayın Paneli Sekmesi -->
     <div id="panelPanel" class="panel">
       <h3>Yayın Bilgileri</h3>
       <div class="form-group">
@@ -252,30 +242,38 @@
   </div>
 
   <script>
-    const API_BASE = "https://emcee-enchilada-eggbeater.ngrok-free.dev/api/streams";
+    // Vercel içindeki API endpoint'i (Tamamen göreceli yol)
+    const API_BASE = "/api/streams";
     let currentStreamId = null;
     let pingInterval = null;
     let phoneSDK = null;
 
-    // 1. Phone SDK Entegrasyonu ve Tema Yükleme
-    try {
-      phoneSDK = PhoneSDK.createPhoneSDK();
-      phoneSDK.whenReady().then(function (ctx) {
-        if (ctx.characterId) {
-          document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
-          document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
+    document.addEventListener("DOMContentLoaded", function () {
+      try {
+        if (window.PhoneSDK) {
+          phoneSDK = PhoneSDK.createPhoneSDK();
+          phoneSDK.whenReady().then(function (ctx) {
+            if (ctx.characterId) {
+              document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
+              document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
+            }
+            if (ctx.theme) {
+              document.documentElement.style.setProperty('--bg', ctx.theme.background || '#121212');
+              document.documentElement.style.setProperty('--label', ctx.theme.label || '#ffffff');
+              document.documentElement.style.setProperty('--accent', ctx.theme.accent || '#9c27b0');
+            }
+          }).catch(err => console.log("SDK hazır hatası:", err));
+        } else {
+          document.getElementById("charInfo").textContent = "Web Modu";
         }
-        if (ctx.theme) {
-          document.documentElement.style.setProperty('--bg', ctx.theme.background || '#121212');
-          document.documentElement.style.setProperty('--label', ctx.theme.label || '#ffffff');
-          document.documentElement.style.setProperty('--accent', ctx.theme.accent || '#9c27b0');
-        }
-      }).catch(err => console.log("SDK hazır olma hatası:", err));
-    } catch (e) {
-      document.getElementById("charInfo").textContent = "Web Modu";
-    }
+      } catch (e) {
+        document.getElementById("charInfo").textContent = "Web Modu";
+      }
 
-    // 2. Sekme Değiştirme
+      loadStreams();
+      setInterval(loadStreams, 4000);
+    });
+
     function switchTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -290,11 +288,8 @@
       }
     }
 
-    // 3. Yayınları Listeleme
     function loadStreams() {
-      fetch(API_BASE, {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      })
+      fetch(API_BASE)
       .then(res => res.json())
       .then(streams => {
         const listDiv = document.getElementById('streamsList');
@@ -317,11 +312,9 @@
       })
       .catch(err => {
         console.error("Yayınlar yüklenemedi:", err);
-        document.getElementById('streamsList').innerHTML = '<div class="no-streams">Yayın listesi alınamadı</div>';
       });
     }
 
-    // 4. Yayın Başlatma
     async function startStream() {
       const title = document.getElementById('streamTitle').value.trim();
       const author = document.getElementById('streamAuthor').value.trim() || 'Yayıncı';
@@ -334,21 +327,17 @@
 
       currentStreamId = 'stream_' + Math.floor(Math.random() * 1000000);
 
-      // İsteğe bağlı: Telefon içi canlı yayın servisini tetikle
       if (phoneSDK && phoneSDK.live) {
         try {
           await phoneSDK.live.startBroadcast({ title: title });
         } catch (e) {
-          console.warn("Phone SDK Broadcast başlatılamadı:", e);
+          console.warn("Phone SDK Broadcast hatası:", e);
         }
       }
 
       fetch(API_BASE, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: currentStreamId, title, author, category })
       })
       .then(res => res.json())
@@ -359,11 +348,12 @@
 
           if (pingInterval) clearInterval(pingInterval);
           pingInterval = setInterval(() => {
-            fetch(`${API_BASE}/${currentStreamId}/ping`, {
+            fetch(API_BASE, {
               method: 'POST',
-              headers: { 'ngrok-skip-browser-warning': 'true' }
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: currentStreamId, isPing: true })
             }).catch(err => console.error("Ping hatası:", err));
-          }, 2500);
+          }, 3000);
 
           switchTab('discover');
         }
@@ -371,7 +361,6 @@
       .catch(err => alert('Yayın başlatılamadı: ' + err));
     }
 
-    // 5. Yayına Katılma (İzleme)
     async function watchStream(broadcastId) {
       if (phoneSDK && phoneSDK.live) {
         try {
@@ -384,7 +373,6 @@
       }
     }
 
-    // 6. Yayın Bitirme
     async function stopStream() {
       if (!currentStreamId) return;
 
@@ -396,10 +384,7 @@
         }
       }
 
-      fetch(`${API_BASE}/${currentStreamId}`, {
-        method: 'DELETE',
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      })
+      fetch(`${API_BASE}?id=${currentStreamId}`, { method: 'DELETE' })
       .then(() => cleanupStream())
       .catch(() => cleanupStream());
     }
@@ -412,13 +397,9 @@
       loadStreams();
     }
 
-    // Yardımcı: HTML Enjeksiyon Koruması
     function escapeHtml(str) {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-
-    setInterval(loadStreams, 4000);
-    loadStreams();
   </script>
 </body>
 </html>
