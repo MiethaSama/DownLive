@@ -11,7 +11,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 4000) {
     return response;
   } catch (e) {
     clearTimeout(id);
-    console.error("KVDB Fetch Error:", e.message);
+    console.error("KVDB Fetch Timeout/Error:", e.message);
     return null;
   }
 }
@@ -31,11 +31,14 @@ async function getKV(key, fallback) {
 
 async function setKV(key, data) {
   try {
-    await fetchWithTimeout(KV_BASE + key, {
-      method: 'POST',
+    const res = await fetchWithTimeout(KV_BASE + key, {
+      method: 'PUT', // kvdb.io veri güncelleme için PUT kullanır
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }, 4000);
+    if (!res || !res.ok) {
+      console.error("KVDB Save Failed status:", res ? res.status : "No response");
+    }
   } catch (e) {
     console.error("KVDB Save Error:", e.message);
   }
