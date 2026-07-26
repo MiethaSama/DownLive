@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DownLive</title>
-  <!-- SDK Tam Adresi -->
   <script src="https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js"></script>
   <style>
     :root {
@@ -249,7 +248,8 @@
   </div>
 
   <script>
-    const API_BASE = "/api/streams";
+    // Tam Vercel Domain Adresi
+    const API_BASE = "https://downlive.vercel.app/api/streams";
     let currentStreamId = null;
     let pingInterval = null;
     let phone = null;
@@ -316,7 +316,7 @@
     function loadStreams() {
       fetch(API_BASE)
       .then(res => {
-        if (!res.ok) throw new Error("API yanıt vermedi: " + res.status);
+        if (!res.ok) throw new Error("API Hatası: " + res.status);
         return res.json();
       })
       .then(streams => {
@@ -340,7 +340,6 @@
       })
       .catch(err => {
         console.error("Yayın çekme hatası:", err);
-        document.getElementById('streamsList').innerHTML = '<div class="no-streams">Yayın listesi alınamadı</div>';
       });
     }
 
@@ -371,7 +370,7 @@
           btn.disabled = false;
           btn.innerText = "Yayını Başlat";
           if (e.code === 'USER_DENIED') {
-            showError("Yayın başlatma isteği reddedildi.");
+            showError("Yayın isteği reddedildi.");
             return;
           } else if (e.code === 'PERMISSION_DENIED') {
             showError("Eksik İzin: 'live.broadcast' izni gerekiyor.");
@@ -391,6 +390,14 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: currentStreamId, title, author, category })
         });
+
+        if (!res.ok) {
+          const text = await res.text();
+          showError("Sunucu Hatası (" + res.status + "): " + text.substring(0, 40));
+          btn.disabled = false;
+          btn.innerText = "Yayını Başlat";
+          return;
+        }
 
         const data = await res.json();
 
@@ -412,7 +419,7 @@
           showError("Hata: " + (data.error || "Bilinmeyen hata"));
         }
       } catch (err) {
-        showError("Backend bağlantı hatası!");
+        showError("Bağlantı Hatası: " + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = "Yayını Başlat";
