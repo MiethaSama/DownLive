@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DownLive</title>
-  <!-- Downtown Phone SDK -->
-  <script src="https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js"></script>
   <style>
     :root {
       --bg: #121212;
@@ -52,11 +50,15 @@
     }
 
     .char-badge {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--label-secondary);
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.08);
       padding: 4px 8px;
       border-radius: 6px;
+      max-width: 160px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
     }
 
     .status-bar {
@@ -225,7 +227,7 @@
 
   <div class="header">
     <div class="logo">DownLive</div>
-    <div id="charInfo" class="char-badge">Bağlanıyor...</div>
+    <div id="charInfo" class="char-badge">SDK Yükleniyor...</div>
   </div>
 
   <div id="statusBar" class="status-bar">
@@ -266,27 +268,73 @@
     let pingInterval = null;
     let phoneSDK = null;
 
-    document.addEventListener("DOMContentLoaded", function () {
-      try {
+    function setBadge(text, isError = false) {
+      const badge = document.getElementById("charInfo");
+      if (badge) {
+        badge.textContent = text;
+        badge.style.color = isError ? "#ff6b6b" : "var(--label-secondary)";
+      }
+    }
+
+    // Dynamic SDK Loader
+    function loadSDK() {
+      return new Promise((resolve, reject) => {
         if (window.PhoneSDK) {
-          phoneSDK = PhoneSDK.createPhoneSDK();
-          phoneSDK.whenReady().then(function (ctx) {
+          resolve(window.PhoneSDK);
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js";
+        script.async = true;
+
+        script.onload = () => {
+          if (window.PhoneSDK) {
+            resolve(window.PhoneSDK);
+          } else {
+            reject(new Error("PhoneSDK objesi bulunamadı"));
+          }
+        };
+
+        script.onerror = () => {
+          reject(new Error("SDK Script indirilemedi"));
+        };
+
+        document.head.appendChild(script);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      // SDK Yükleme İşlemi
+      loadSDK()
+        .then(SDK => {
+          try {
+            phoneSDK = SDK.createPhoneSDK();
+            return phoneSDK.whenReady();
+          } catch (e) {
+            setBadge("SDK Oluşturma Hatası", true);
+          }
+        })
+        .then(ctx => {
+          if (ctx) {
             if (ctx.characterId) {
-              document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
+              setBadge("Karakter #" + ctx.characterId);
               document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
+            } else {
+              setBadge("SDK Hazır");
             }
+
             if (ctx.theme) {
               document.documentElement.style.setProperty('--bg', ctx.theme.background || '#121212');
               document.documentElement.style.setProperty('--label', ctx.theme.label || '#ffffff');
               document.documentElement.style.setProperty('--accent', ctx.theme.accent || '#9c27b0');
             }
-          }).catch(err => console.log("SDK hazır hatası:", err));
-        } else {
-          document.getElementById("charInfo").textContent = "Web Modu";
-        }
-      } catch (e) {
-        document.getElementById("charInfo").textContent = "Web Modu";
-      }
+          }
+        })
+        .catch(err => {
+          console.warn("SDK Yüklenemedi:", err.message);
+          setBadge("SDK Yüklenemedi (Web Modu)");
+        });
 
       loadStreams();
       setInterval(loadStreams, 4000);
@@ -363,14 +411,16 @@
 
       currentStreamId = 'stream_' + Math.floor(Math.random() * 1000000);
 
-      // 1. SDK çağrısını kilitlenmeye yol açmayacak şekilde (await etmeden) arka planda başlatıyoruz
+      // SDK üzerinden yayını duyurmayı dene (Hata verirse uygulamayı durdurmasın)
       if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.startBroadcast === 'function') {
-        phoneSDK.live.startBroadcast({ title: title }).catch(e => {
-          console.warn("Phone SDK Broadcast başlatılamadı:", e);
-        });
+        try {
+          phoneSDK.live.startBroadcast({ title: title });
+        } catch (e) {
+          console.warn("Phone SDK Broadcast hatası:", e);
+        }
       }
 
-      // 2. Vercel backend'ine POST isteği gönderiyoruz
+      // Backend'e yayını kaydet
       try {
         const res = await fetch(API_BASE, {
           method: 'POST',
@@ -407,21 +457,21 @@
     }
 
     async function watchStream(broadcastId) {
-      if (phoneSDK && phoneSDK.live) {
+      if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.watch === 'function') {
         try {
           await phoneSDK.live.watch({ broadcastId: broadcastId });
         } catch (e) {
           showError("Yayına katılınamadı: " + (e.code || e.message || "Hata"));
         }
       } else {
-        alert("Yayına katılınıyor ID: " + broadcastId);
+        showError("SDK aktif değil, yayına katılınamıyor.");
       }
     }
 
     async function stopStream() {
       if (!currentStreamId) return;
 
-      if (phoneSDK && phoneSDK.live) {
+      if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.leave === 'function') {
         try {
           await phoneSDK.live.leave();
         } catch (e) {
