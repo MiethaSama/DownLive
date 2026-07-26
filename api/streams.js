@@ -1,8 +1,8 @@
 let memoryStreams = [];
-let memoryFrames = {};
-const KV_BASE = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/";
+let memoryFrames = {}; // Kareler ram üzerinde hızlı ve hafif tutulur
+const KV_URL = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/downlive_streams";
 
-async function fetchWithTimeout(url, options = {}, timeout = 4000) {
+async function fetchWithTimeout(url, options = {}, timeout = 3000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -15,23 +15,30 @@ async function fetchWithTimeout(url, options = {}, timeout = 4000) {
   }
 }
 
-async function getKV(key, fallback) {
+async function getStreams() {
   try {
-    const res = await fetchWithTimeout(KV_BASE + key, { headers: { 'Cache-Control': 'no-cache' } }, 3000);
+    const res = await fetchWithTimeout(KV_URL, { headers: { 'Cache-Control': 'no-cache' } }, 3000);
     if (res && res.ok) {
       const text = await res.text();
-      if (text) return JSON.parse(text);
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          memoryStreams = parsed;
+          return parsed;
+        }
+      }
     }
   } catch (e) {}
-  return fallback;
+  return memoryStreams;
 }
 
-async function setKV(key, data) {
+async function saveStreams(list) {
+  memoryStreams = list;
   try {
-    await fetchWithTimeout(KV_BASE + key, {
+    await fetchWithTimeout(KV_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(list)
     }, 3000);
   } catch (e) {}
 }
@@ -47,21 +54,19 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let streamsList = await getKV('downlive_streams', memoryStreams);
-    let framesMap = await getKV('downlive_frames', memoryFrames);
-
-    // Web izleyicisi canlı kare istiyorsa
+    // Canlı kare istemi
     if (req.method === 'GET' && req.query.frameId) {
-      const frameData = framesMap[req.query.frameId] || null;
+      const frameData = memoryFrames[req.query.frameId] || null;
       return res.status(200).json({ frame: frameData });
     }
 
+    let streamsList = await getStreams();
     const now = Date.now();
-    const activeStreams = streamsList.filter(s => now - (s.lastPing || 0) < 45000);
     
+    const activeStreams = streamsList.filter(s => now - (s.lastPing || 0) < 45000);
     if (activeStreams.length !== streamsList.length) {
       streamsList = activeStreams;
-      await setKV('downlive_streams', streamsList);
+      await saveStreams(streamsList);
     }
 
     if (req.method === 'GET') {
@@ -77,10 +82,9 @@ module.exports = async (req, res) => {
 
       const { id, title, author, category, frame, isPing } = body;
 
-      // Oyun tarafından gelen canlı görüntü karesi ortak hafüza kaydedilir
+      // Gelen kareyi hafızaya yaz (Ağ yükünü önler)
       if (id && frame) {
-        framesMap[id] = frame;
-        await setKV('downlive_frames', framesMap);
+        memoryFrames[id] = frame;
         return res.status(200).json({ success: true });
       }
 
@@ -88,7 +92,7 @@ module.exports = async (req, res) => {
         const stream = streamsList.find(s => s.id === id);
         if (stream) {
           stream.lastPing = Date.now();
-          await setKV('downlive_streams', streamsList);
+          await saveStreams(streamsList);
           return res.status(200).json({ success: true });
         }
         return res.status(200).json({ success: true, note: 're-registered' });
@@ -109,7 +113,7 @@ module.exports = async (req, res) => {
       };
 
       streamsList.push(newStream);
-      await setKV('downlive_streams', streamsList);
+      await saveStreams(streamsList);
 
       return res.status(200).json({ success: true, stream: newStream });
     }
@@ -118,9 +122,8 @@ module.exports = async (req, res) => {
       const streamId = req.query.id;
       if (streamId) {
         streamsList = streamsList.filter(s => s.id !== streamId);
-        delete framesMap[streamId];
-        await setKV('downlive_streams', streamsList);
-        await setKV('downlive_frames', framesMap);
+        delete memoryFrames[streamId];
+        await saveStreams(streamsList);
       }
       return res.status(200).json({ success: true });
     }
