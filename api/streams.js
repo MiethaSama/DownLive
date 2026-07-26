@@ -1,8 +1,8 @@
 let memoryStreams = [];
-let latestFrames = {}; // Canlı yayın karelerini geçici hafızada tutar
+let latestFrames = {}; 
 const KV_URL = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/downlive_streams";
 
-async function fetchWithTimeout(url, options = {}, timeout = 1500) {
+async function fetchWithTimeout(url, options = {}, timeout = 4000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -17,10 +17,16 @@ async function fetchWithTimeout(url, options = {}, timeout = 1500) {
 
 async function getStreams() {
   try {
-    const res = await fetchWithTimeout(KV_URL, {}, 1500);
+    const res = await fetchWithTimeout(KV_URL, { headers: { 'Cache-Control': 'no-cache' } }, 4000);
     if (res && res.ok) {
       const text = await res.text();
-      if (text) return JSON.parse(text);
+      if (text) {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) {
+          memoryStreams = parsed; // Belleği de güncelle
+          return parsed;
+        }
+      }
     }
   } catch (e) {}
   return memoryStreams;
@@ -33,7 +39,7 @@ async function saveStreams(list) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(list)
-    }, 1500);
+    }, 4000);
   } catch (e) {}
 }
 
@@ -48,7 +54,6 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Web izleyicisi canlı kare istiyorsa
     if (req.method === 'GET' && req.query.frameId) {
       const frameData = latestFrames[req.query.frameId] || null;
       return res.status(200).json({ frame: frameData });
@@ -56,7 +61,13 @@ module.exports = async (req, res) => {
 
     let streamsList = await getStreams();
     const now = Date.now();
-    streamsList = streamsList.filter(s => now - (s.lastPing || 0) < 30000);
+    
+    // Süresi geçenleri temizle (Ping süresi 45 saniyeye çıkarıldı)
+    const activeStreams = streamsList.filter(s => now - (s.lastPing || 0) < 45000);
+    if (activeStreams.length !== streamsList.length) {
+      streamsList = activeStreams;
+      await saveStreams(streamsList);
+    }
 
     if (req.method === 'GET') {
       return res.status(200).json(streamsList);
@@ -71,7 +82,6 @@ module.exports = async (req, res) => {
 
       const { id, title, author, category, frame, isPing } = body;
 
-      // Oyun tarafından gelen canlı görüntü karesi
       if (id && frame) {
         latestFrames[id] = frame;
         return res.status(200).json({ success: true });
