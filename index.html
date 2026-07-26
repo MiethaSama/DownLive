@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DownLive</title>
-  <!-- Dokümantasyon önerisi: Telefon içi iframe'de en güvenli bağıl yol -->
-  <script src="/api/sdk/0.2/child.umd.js"></script>
+  <!-- SDK Tam Adresi -->
+  <script src="https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js"></script>
   <style>
-    /* Dokümantasyonda belirtilen varsayılan tema değişkenleri */
     :root {
       --bg: #121212;
       --label: #ffffff;
@@ -24,7 +23,6 @@
       padding: 0;
     }
 
-    /* 308px genişlik sınırı ve 32px alt Home çubuğu padding alanı */
     body {
       background: var(--bg);
       color: var(--label);
@@ -128,7 +126,6 @@
       gap: 10px;
     }
 
-    /* Dokümantasyon kuralı: Butonlar min 44px yükseklikte olmalı */
     input {
       width: 100%;
       min-height: 44px;
@@ -258,12 +255,10 @@
     let phone = null;
 
     document.addEventListener("DOMContentLoaded", function () {
-      // SDK Çağrısı (Dokümantasyon Standartları)
       if (window.PhoneSDK) {
         try {
           phone = PhoneSDK.createPhoneSDK();
           phone.whenReady().then(function (ctx) {
-            // Tema renklerinin CSS değişkenlerine atanması
             var r = document.documentElement.style;
             if (ctx.theme) {
               if (ctx.theme.label) r.setProperty("--label", ctx.theme.label);
@@ -279,7 +274,7 @@
               document.getElementById("charInfo").textContent = "Hazır";
             }
           }).catch(err => {
-            showError("SDK Başlatma Hatası: " + err);
+            document.getElementById("charInfo").textContent = "Web Modu";
           });
         } catch (e) {
           document.getElementById("charInfo").textContent = "Web Modu";
@@ -320,7 +315,10 @@
 
     function loadStreams() {
       fetch(API_BASE)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("API yanıt vermedi: " + res.status);
+        return res.json();
+      })
       .then(streams => {
         const listDiv = document.getElementById('streamsList');
         if (!streams || streams.length === 0) {
@@ -340,7 +338,10 @@
           </div>
         `).join('');
       })
-      .catch(err => console.error("Yayın çekme hatası:", err));
+      .catch(err => {
+        console.error("Yayın çekme hatası:", err);
+        document.getElementById('streamsList').innerHTML = '<div class="no-streams">Yayın listesi alınamadı</div>';
+      });
     }
 
     async function startStream() {
@@ -360,7 +361,6 @@
 
       let realBroadcastId = 'web_' + Math.floor(Math.random() * 1000000);
 
-      // Oyun SDK'sı üzerinden yayın başlatma ve gerçek broadcastId'yi alma
       if (phone && phone.live) {
         try {
           const res = await phone.live.startBroadcast({ title: title });
@@ -409,7 +409,7 @@
 
           switchTab('discover');
         } else {
-          showError("Veritabanı hatası: " + (data.error || "Bilinmeyen"));
+          showError("Hata: " + (data.error || "Bilinmeyen hata"));
         }
       } catch (err) {
         showError("Backend bağlantı hatası!");

@@ -1,6 +1,6 @@
-global.streamsList = global.streamsList || [];
+let streamsList = [];
 
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -10,17 +10,17 @@ export default function handler(req, res) {
   }
 
   const now = Date.now();
-  global.streamsList = global.streamsList.filter(s => now - s.lastPing < 30000);
+  streamsList = streamsList.filter(s => now - (s.lastPing || 0) < 30000);
 
   if (req.method === 'GET') {
-    return res.status(200).json(global.streamsList);
+    return res.status(200).json(streamsList);
   }
 
   if (req.method === 'POST') {
     const { id, title, author, category, isPing } = req.body || {};
 
     if (isPing) {
-      const stream = global.streamsList.find(s => s.id === id);
+      const stream = streamsList.find(s => s.id === id);
       if (stream) {
         stream.lastPing = Date.now();
         return res.status(200).json({ success: true });
@@ -29,10 +29,10 @@ export default function handler(req, res) {
     }
 
     if (!id || !title) {
-      return res.status(400).json({ success: false, error: 'Eksik veri' });
+      return res.status(400).json({ success: false, error: 'Eksik başlık veya ID' });
     }
 
-    global.streamsList = global.streamsList.filter(s => s.id !== id);
+    streamsList = streamsList.filter(s => s.id !== id);
 
     const newStream = {
       id,
@@ -42,17 +42,17 @@ export default function handler(req, res) {
       lastPing: Date.now()
     };
 
-    global.streamsList.push(newStream);
+    streamsList.push(newStream);
     return res.status(200).json({ success: true, stream: newStream });
   }
 
   if (req.method === 'DELETE') {
     const streamId = req.query.id;
     if (streamId) {
-      global.streamsList = global.streamsList.filter(s => s.id !== streamId);
+      streamsList = streamsList.filter(s => s.id !== streamId);
     }
     return res.status(200).json({ success: true });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
-}
+};
