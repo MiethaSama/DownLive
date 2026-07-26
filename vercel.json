@@ -5,9 +5,8 @@
       "source": "/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "*" },
-        { "key": "Content-Security-Policy", "value": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors *;" }
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS, DELETE" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors *" }
       ]
     }
   ]

@@ -4,17 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DownLive</title>
+  <!-- Dokümantasyon önerisi: Telefon içi iframe'de en güvenli bağıl yol -->
+  <script src="/api/sdk/0.2/child.umd.js"></script>
   <style>
+    /* Dokümantasyonda belirtilen varsayılan tema değişkenleri */
     :root {
       --bg: #121212;
-      --card-bg: #1e1e1e;
-      --input-bg: #2a2a2a;
       --label: #ffffff;
-      --label-secondary: #aaa;
+      --label-2: #aaaaaa;
       --accent: #9c27b0;
-      --accent-hover: #7b1fa2;
       --danger: #d32f2f;
-      --border: #333333;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.1);
     }
 
     * {
@@ -23,19 +24,23 @@
       padding: 0;
     }
 
+    /* 308px genişlik sınırı ve 32px alt Home çubuğu padding alanı */
     body {
-      background-color: var(--bg);
+      background: var(--bg);
       color: var(--label);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      padding-bottom: 48px;
+      font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding-bottom: 32px;
       min-height: 100vh;
+      max-width: 308px;
+      margin: 0 auto;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
     }
 
     .header {
       background: var(--card-bg);
-      padding: 14px 16px;
+      padding: 12px 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -45,66 +50,59 @@
     .logo {
       font-weight: 800;
       color: var(--accent);
-      font-size: 20px;
-      letter-spacing: 0.5px;
+      font-size: 18px;
     }
 
     .char-badge {
       font-size: 11px;
-      color: var(--label-secondary);
+      color: var(--label-2);
       background: rgba(255, 255, 255, 0.08);
       padding: 4px 8px;
       border-radius: 6px;
-      max-width: 160px;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
     }
 
     .status-bar {
       background: var(--danger);
-      color: white;
-      padding: 10px 16px;
+      color: #fff;
+      padding: 8px 12px;
       display: none;
       justify-content: space-between;
       align-items: center;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: bold;
     }
 
     .status-bar button {
-      width: auto;
-      padding: 6px 12px;
-      margin: 0;
-      font-size: 12px;
+      min-height: 32px;
+      padding: 0 10px;
+      font-size: 11px;
     }
 
     .tabs {
       display: flex;
-      background: #181818;
+      background: rgba(0, 0, 0, 0.2);
       border-bottom: 1px solid var(--border);
     }
 
     .tab {
       flex: 1;
-      padding: 14px;
+      padding: 12px;
       text-align: center;
       cursor: pointer;
-      background: var(--card-bg);
+      background: transparent;
       border: none;
-      color: var(--label-secondary);
-      font-size: 15px;
+      color: var(--label-2);
+      font-size: 14px;
       font-weight: 600;
     }
 
     .tab.active {
-      background: #2a2a2a;
       color: var(--label);
       border-bottom: 3px solid var(--accent);
     }
 
     .content {
-      padding: 16px;
+      padding: 14px;
       flex: 1;
     }
 
@@ -117,9 +115,9 @@
     }
 
     h3 {
-      font-size: 15px;
-      margin-bottom: 12px;
-      color: var(--label-secondary);
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: var(--label-2);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -130,40 +128,33 @@
       gap: 10px;
     }
 
+    /* Dokümantasyon kuralı: Butonlar min 44px yükseklikte olmalı */
     input {
       width: 100%;
       min-height: 44px;
       padding: 0 12px;
-      background: var(--input-bg);
+      background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--border);
       color: var(--label);
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 14px;
       outline: none;
-    }
-
-    input:focus {
-      border-color: var(--accent);
     }
 
     button {
       min-height: 44px;
       padding: 0 16px;
       background: var(--accent);
-      border: none;
-      color: white;
-      border-radius: 8px;
+      color: #ffffff;
+      border: 0;
+      border-radius: 12px;
       font-size: 14px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    button:hover {
-      background: var(--accent-hover);
-    }
-
     button:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
     }
 
@@ -183,16 +174,16 @@
       color: #ff6b6b;
       padding: 10px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       display: none;
       margin-bottom: 10px;
     }
 
     .stream-card {
       background: var(--card-bg);
-      padding: 14px;
+      padding: 12px;
       margin-bottom: 10px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -202,24 +193,24 @@
     .stream-info {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
     .stream-title {
       font-weight: bold;
-      font-size: 15px;
+      font-size: 14px;
     }
 
     .stream-meta {
       font-size: 12px;
-      color: var(--label-secondary);
+      color: var(--label-2);
     }
 
     .no-streams {
       text-align: center;
-      color: var(--label-secondary);
-      padding: 30px 0;
-      font-size: 14px;
+      color: var(--label-2);
+      padding: 20px 0;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -227,12 +218,12 @@
 
   <div class="header">
     <div class="logo">DownLive</div>
-    <div id="charInfo" class="char-badge">SDK Yükleniyor...</div>
+    <div id="charInfo" class="char-badge">Bağlanıyor...</div>
   </div>
 
   <div id="statusBar" class="status-bar">
     <span id="statusText">● YAYINDASINIZ</span>
-    <button onclick="stopStream()" class="danger">Yayın Bitir</button>
+    <button onclick="stopStream()" class="danger">Bitir</button>
   </div>
 
   <div class="tabs">
@@ -241,22 +232,20 @@
   </div>
 
   <div class="content">
-    <!-- Keşfet Sekmesi -->
     <div id="discoverPanel" class="panel active">
-      <h3>Aktif Canlı Yayınlar</h3>
+      <h3>Aktif Yayınlar</h3>
       <div id="streamsList">
         <div class="no-streams">Canlı yayınlar yükleniyor...</div>
       </div>
     </div>
 
-    <!-- Yayın Paneli Sekmesi -->
     <div id="panelPanel" class="panel">
       <h3>Yayın Bilgileri</h3>
       <div id="formError" class="error-box"></div>
       <div class="form-group">
-        <input type="text" id="streamTitle" placeholder="Yayın Başlığı (Zorunlu)">
-        <input type="text" id="streamAuthor" placeholder="Yayıncı Adı (Karakter)">
-        <input type="text" id="streamCategory" placeholder="Kategori (ör. Sohbet, Müzik)">
+        <input type="text" id="streamTitle" placeholder="Yayın Başlığı">
+        <input type="text" id="streamAuthor" placeholder="Yayıncı Adı">
+        <input type="text" id="streamCategory" placeholder="Kategori (Sohbet, Müzik)">
         <button id="btnStartStream" onclick="startStream()">Yayını Başlat</button>
       </div>
     </div>
@@ -266,75 +255,38 @@
     const API_BASE = "/api/streams";
     let currentStreamId = null;
     let pingInterval = null;
-    let phoneSDK = null;
-
-    function setBadge(text, isError = false) {
-      const badge = document.getElementById("charInfo");
-      if (badge) {
-        badge.textContent = text;
-        badge.style.color = isError ? "#ff6b6b" : "var(--label-secondary)";
-      }
-    }
-
-    // Dynamic SDK Loader
-    function loadSDK() {
-      return new Promise((resolve, reject) => {
-        if (window.PhoneSDK) {
-          resolve(window.PhoneSDK);
-          return;
-        }
-
-        const script = document.createElement("script");
-        script.src = "https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js";
-        script.async = true;
-
-        script.onload = () => {
-          if (window.PhoneSDK) {
-            resolve(window.PhoneSDK);
-          } else {
-            reject(new Error("PhoneSDK objesi bulunamadı"));
-          }
-        };
-
-        script.onerror = () => {
-          reject(new Error("SDK Script indirilemedi"));
-        };
-
-        document.head.appendChild(script);
-      });
-    }
+    let phone = null;
 
     document.addEventListener("DOMContentLoaded", function () {
-      // SDK Yükleme İşlemi
-      loadSDK()
-        .then(SDK => {
-          try {
-            phoneSDK = SDK.createPhoneSDK();
-            return phoneSDK.whenReady();
-          } catch (e) {
-            setBadge("SDK Oluşturma Hatası", true);
-          }
-        })
-        .then(ctx => {
-          if (ctx) {
-            if (ctx.characterId) {
-              setBadge("Karakter #" + ctx.characterId);
-              document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
-            } else {
-              setBadge("SDK Hazır");
+      // SDK Çağrısı (Dokümantasyon Standartları)
+      if (window.PhoneSDK) {
+        try {
+          phone = PhoneSDK.createPhoneSDK();
+          phone.whenReady().then(function (ctx) {
+            // Tema renklerinin CSS değişkenlerine atanması
+            var r = document.documentElement.style;
+            if (ctx.theme) {
+              if (ctx.theme.label) r.setProperty("--label", ctx.theme.label);
+              if (ctx.theme.secondaryLabel) r.setProperty("--label-2", ctx.theme.secondaryLabel);
+              if (ctx.theme.background) r.setProperty("--bg", ctx.theme.background);
+              if (ctx.theme.accent) r.setProperty("--accent", ctx.theme.accent);
             }
 
-            if (ctx.theme) {
-              document.documentElement.style.setProperty('--bg', ctx.theme.background || '#121212');
-              document.documentElement.style.setProperty('--label', ctx.theme.label || '#ffffff');
-              document.documentElement.style.setProperty('--accent', ctx.theme.accent || '#9c27b0');
+            if (ctx.characterId) {
+              document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
+              document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
+            } else {
+              document.getElementById("charInfo").textContent = "Hazır";
             }
-          }
-        })
-        .catch(err => {
-          console.warn("SDK Yüklenemedi:", err.message);
-          setBadge("SDK Yüklenemedi (Web Modu)");
-        });
+          }).catch(err => {
+            showError("SDK Başlatma Hatası: " + err);
+          });
+        } catch (e) {
+          document.getElementById("charInfo").textContent = "Web Modu";
+        }
+      } else {
+        document.getElementById("charInfo").textContent = "Web Modu";
+      }
 
       loadStreams();
       setInterval(loadStreams, 4000);
@@ -372,31 +324,28 @@
       .then(streams => {
         const listDiv = document.getElementById('streamsList');
         if (!streams || streams.length === 0) {
-          listDiv.innerHTML = '<div class="no-streams">Şu an aktif canlı yayın bulunmuyor</div>';
+          listDiv.innerHTML = '<div class="no-streams">Şu an aktif yayın bulunmuyor</div>';
           return;
         }
 
         listDiv.innerHTML = streams.map(s => `
           <div class="stream-card">
             <div class="stream-info">
-              <div class="stream-title">${escapeHtml(s.title)} ${s.id === currentStreamId ? '<small>(Siz)</small>' : ''}</div>
+              <div class="stream-title">${escapeHtml(s.title)} ${s.id === currentStreamId ? '<small style="color:var(--accent);">(Siz)</small>' : ''}</div>
               <div class="stream-meta">${escapeHtml(s.author || 'Yayıncı')} • ${escapeHtml(s.category || 'Genel')}</div>
             </div>
             ${s.id !== currentStreamId ? `
-              <button class="secondary" style="width: auto; min-height: 36px; font-size: 12px;" onclick="watchStream('${s.id}')">Katıl</button>
+              <button class="secondary" style="min-height: 36px; padding: 0 10px; font-size: 12px;" onclick="watchStream('${s.id}')">Katıl</button>
             ` : ''}
           </div>
         `).join('');
       })
-      .catch(err => {
-        console.error("Yayınlar yüklenemedi:", err);
-      });
+      .catch(err => console.error("Yayın çekme hatası:", err));
     }
 
     async function startStream() {
       hideError();
-      const titleInput = document.getElementById('streamTitle');
-      const title = titleInput ? titleInput.value.trim() : '';
+      const title = document.getElementById('streamTitle').value.trim();
       const author = document.getElementById('streamAuthor').value.trim() || 'Yayıncı';
       const category = document.getElementById('streamCategory').value.trim() || 'Genel';
 
@@ -409,18 +358,33 @@
       btn.disabled = true;
       btn.innerText = "Başlatılıyor...";
 
-      currentStreamId = 'stream_' + Math.floor(Math.random() * 1000000);
+      let realBroadcastId = 'web_' + Math.floor(Math.random() * 1000000);
 
-      // SDK üzerinden yayını duyurmayı dene (Hata verirse uygulamayı durdurmasın)
-      if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.startBroadcast === 'function') {
+      // Oyun SDK'sı üzerinden yayın başlatma ve gerçek broadcastId'yi alma
+      if (phone && phone.live) {
         try {
-          phoneSDK.live.startBroadcast({ title: title });
+          const res = await phone.live.startBroadcast({ title: title });
+          if (res && res.broadcastId) {
+            realBroadcastId = res.broadcastId;
+          }
         } catch (e) {
-          console.warn("Phone SDK Broadcast hatası:", e);
+          btn.disabled = false;
+          btn.innerText = "Yayını Başlat";
+          if (e.code === 'USER_DENIED') {
+            showError("Yayın başlatma isteği reddedildi.");
+            return;
+          } else if (e.code === 'PERMISSION_DENIED') {
+            showError("Eksik İzin: 'live.broadcast' izni gerekiyor.");
+            return;
+          } else {
+            showError("SDK Hatası: " + (e.code || e.message));
+            return;
+          }
         }
       }
 
-      // Backend'e yayını kaydet
+      currentStreamId = realBroadcastId;
+
       try {
         const res = await fetch(API_BASE, {
           method: 'POST',
@@ -432,7 +396,7 @@
 
         if (data && data.success) {
           document.getElementById('statusBar').style.display = 'flex';
-          document.getElementById('statusText').innerText = `● YAYINDASINIZ: ${title}`;
+          document.getElementById('statusText').innerText = `● YAYIN: ${title}`;
 
           if (pingInterval) clearInterval(pingInterval);
           pingInterval = setInterval(() => {
@@ -445,11 +409,10 @@
 
           switchTab('discover');
         } else {
-          showError("Yayın başlatılamadı: " + (data.error || "Bilinmeyen hata"));
+          showError("Veritabanı hatası: " + (data.error || "Bilinmeyen"));
         }
       } catch (err) {
-        console.error("Fetch hatası:", err);
-        showError("Sunucuya bağlanılamadı. Lütfen tekrar deneyin.");
+        showError("Backend bağlantı hatası!");
       } finally {
         btn.disabled = false;
         btn.innerText = "Yayını Başlat";
@@ -457,25 +420,25 @@
     }
 
     async function watchStream(broadcastId) {
-      if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.watch === 'function') {
+      if (phone && phone.live) {
         try {
-          await phoneSDK.live.watch({ broadcastId: broadcastId });
+          await phone.live.watch({ broadcastId: broadcastId });
         } catch (e) {
-          showError("Yayına katılınamadı: " + (e.code || e.message || "Hata"));
+          showError("Katılma Hatası: " + (e.code || e.message));
         }
       } else {
-        showError("SDK aktif değil, yayına katılınamıyor.");
+        alert("Web Modu: Yayın ID " + broadcastId);
       }
     }
 
     async function stopStream() {
       if (!currentStreamId) return;
 
-      if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.leave === 'function') {
+      if (phone && phone.live) {
         try {
-          await phoneSDK.live.leave();
+          await phone.live.leave();
         } catch (e) {
-          console.warn("Phone SDK leave hatası:", e);
+          console.warn("SDK Leave hatası:", e);
         }
       }
 
