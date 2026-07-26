@@ -2,7 +2,7 @@ let memoryStreams = [];
 let memoryFrames = {};
 const KV_BASE = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/";
 
-async function fetchWithTimeout(url, options = {}, timeout = 1500) {
+async function fetchWithTimeout(url, options = {}, timeout = 4000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -11,18 +11,21 @@ async function fetchWithTimeout(url, options = {}, timeout = 1500) {
     return response;
   } catch (e) {
     clearTimeout(id);
+    console.error("KVDB Fetch Error:", e.message);
     return null;
   }
 }
 
 async function getKV(key, fallback) {
   try {
-    const res = await fetchWithTimeout(KV_BASE + key, { headers: { 'Cache-Control': 'no-cache' } }, 1500);
+    const res = await fetchWithTimeout(KV_BASE + key, { headers: { 'Cache-Control': 'no-cache' } }, 4000);
     if (res && res.ok) {
       const text = await res.text();
       if (text) return JSON.parse(text);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("KVDB Parse Error:", e.message);
+  }
   return fallback;
 }
 
@@ -32,8 +35,10 @@ async function setKV(key, data) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }, 1500);
-  } catch (e) {}
+    }, 4000);
+  } catch (e) {
+    console.error("KVDB Save Error:", e.message);
+  }
 }
 
 module.exports = async (req, res) => {
@@ -129,6 +134,7 @@ module.exports = async (req, res) => {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
+    console.error("API Main Error:", err.message);
     return res.status(200).json({ success: false, error: err.message });
   }
 };
