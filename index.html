@@ -25,7 +25,7 @@
       color: var(--label);
       font: 15px/1.45 -apple-system, "Segoe UI", sans-serif;
       padding: 16px;
-      padding-bottom: 48px; /* Alt 32px home çubuğu için boşluk */
+      padding-bottom: 48px;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -140,13 +140,6 @@
     <button id="btn-leave" class="danger" style="display: none;">Yayından Ayrıl</button>
   </section>
 
-  <!-- Yayıncıya Bahşiş / Destek Bölümü -->
-  <section class="card">
-    <h2>Yayıncıya Destek Ol</h2>
-    <input type="number" id="tip-amount" placeholder="Miktar ($)" min="1" value="50" />
-    <button id="btn-tip" class="secondary">$ Miktarı Gönder</button>
-  </section>
-
   <script>
     var phone = PhoneSDK.createPhoneSDK();
 
@@ -210,22 +203,6 @@
         document.getElementById("status-badge").classList.remove("active");
       } catch (e) {
         alert("Hata: " + (e.code || "Ayrılma başarısız"));
-      }
-    };
-
-    // 5. Bahşiş / Bağış Gönderme
-    document.getElementById("btn-tip").onclick = async function () {
-      var amount = parseInt(document.getElementById("tip-amount").value, 10);
-      if (!amount || amount <= 0) {
-        alert("Geçerli bir tutar girin.");
-        return;
-      }
-
-      try {
-        await phone.bank.transfer({ amount: amount, note: "Canlı Yayın Bahşişi" });
-        alert("$" + amount + " başarıyla gönderildi!");
-      } catch (e) {
-        alert("Ödeme Yapılamadı: " + (e.code || "Hata oluştu"));
       }
     };
   </script>
