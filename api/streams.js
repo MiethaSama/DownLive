@@ -1,7 +1,8 @@
 let memoryStreams = [];
+let memoryFrames = {};
 const KV_BASE = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/";
 
-async function fetchWithTimeout(url, options = {}, timeout = 2500) {
+async function fetchWithTimeout(url, options = {}, timeout = 1500) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -16,7 +17,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 2500) {
 
 async function getKV(key, fallback) {
   try {
-    const res = await fetchWithTimeout(KV_BASE + key, { headers: { 'Cache-Control': 'no-cache' } }, 2000);
+    const res = await fetchWithTimeout(KV_BASE + key, { headers: { 'Cache-Control': 'no-cache' } }, 1500);
     if (res && res.ok) {
       const text = await res.text();
       if (text) return JSON.parse(text);
@@ -31,7 +32,7 @@ async function setKV(key, data) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }, 2000);
+    }, 1500);
   } catch (e) {}
 }
 
@@ -46,9 +47,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // 1. Canlı kare talebi (Merkezi KVDB'den okunur)
+    let framesMap = await getKV('downlive_frames', memoryFrames);
+
     if (req.method === 'GET' && req.query.frameId) {
-      const frameData = await getKV('frame_' + req.query.frameId, null);
+      const frameData = framesMap[req.query.frameId] || null;
       return res.status(200).json({ frame: frameData });
     }
 
@@ -74,9 +76,10 @@ module.exports = async (req, res) => {
 
       const { id, title, author, category, frame, isPing } = body;
 
-      // 2. Gelen kareyi merkezi KVDB'ye kaydet
       if (id && frame) {
-        await setKV('frame_' + id, frame);
+        framesMap[id] = frame;
+        memoryFrames = framesMap;
+        await setKV('downlive_frames', framesMap);
         return res.status(200).json({ success: true });
       }
 
@@ -114,9 +117,10 @@ module.exports = async (req, res) => {
       const streamId = req.query.id;
       if (streamId) {
         streamsList = streamsList.filter(s => s.id !== streamId);
+        delete framesMap[streamId];
+        memoryFrames = framesMap;
         await setKV('downlive_streams', streamsList);
-        // Kareyi veritabanından sil
-        await setKV('frame_' + streamId, null);
+        await setKV('downlive_frames', framesMap);
       }
       return res.status(200).json({ success: true });
     }

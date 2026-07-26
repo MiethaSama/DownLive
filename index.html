@@ -488,8 +488,8 @@
       if (frameSendInterval) clearInterval(frameSendInterval);
 
       const canvas = document.createElement('canvas');
-      canvas.width = 240;
-      canvas.height = 135;
+      canvas.width = 160;  // Çok hafif boyut
+      canvas.height = 90;
       const ctx = canvas.getContext('2d');
 
       frameSendInterval = setInterval(() => {
@@ -498,7 +498,7 @@
 
         try {
           ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          const base64Frame = canvas.toDataURL('image/jpeg', 0.3);
+          const base64Frame = canvas.toDataURL('image/jpeg', 0.2); // Yüksek sıkıştırma
 
           fetch(API_BASE, {
             method: 'POST',
@@ -506,7 +506,7 @@
             body: JSON.stringify({ id: streamId, frame: base64Frame })
           }).catch(() => {});
         } catch (e) {}
-      }, 500);
+      }, 700); // 700ms aralıkla gönderim
     }
 
     async function watchStream(broadcastId) {
@@ -536,7 +536,7 @@
             }
           })
           .catch(() => {});
-      }, 500);
+      }, 700);
     }
 
     function closePlayer() {
