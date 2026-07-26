@@ -432,16 +432,30 @@
     }
 
     async function watchStream(broadcastId) {
-      if (phone && phone.live) {
-        try {
-          await phone.live.watch({ broadcastId: broadcastId });
-        } catch (e) {
-          showError("Katılma Hatası: " + (e.code || e.message));
-        }
-      } else {
-        alert("Web Modu: Yayın ID " + broadcastId);
-      }
+  hideError();
+
+  // 1. Durum: Web üzerinden açılan yayınlara oyundan girilmeye çalışırsa
+  if (broadcastId.startsWith('web_')) {
+    if (phone) {
+      showError("Bu yayın Web'den açıldığı için oyun içi kamera görüntüsü barındırmaz.");
+    } else {
+      alert("Bu yayın Web üzerinden başlatılmış. (ID: " + broadcastId + ")");
     }
+    return;
+  }
+
+  // 2. Durum: Oyundan açılan gerçek yayına katılım
+  if (phone && phone.live) {
+    try {
+      await phone.live.watch({ broadcastId: broadcastId });
+    } catch (e) {
+      showError("Katılma Hatası: " + (e.code || e.message));
+    }
+  } else {
+    // Web tarayıcısından oyundaki yayını izlemeye çalışırsa
+    alert("Oyundaki canlı yayınları sadece oyun içi telefondan izleyebilirsiniz.");
+  }
+}
 
     async function stopStream() {
       if (!currentStreamId) return;
