@@ -3,15 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Downtown Live</title>
-  <!-- SDK CDN Bağlantısı -->
+  <title>DownLive</title>
+  <!-- Downtown Phone SDK -->
   <script src="https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js"></script>
   <style>
     :root {
       --bg: #121212;
+      --card-bg: #1e1e1e;
+      --input-bg: #2a2a2a;
       --label: #ffffff;
-      --label-2: #8e8e93;
-      --accent: #007aff;
+      --label-secondary: #aaa;
+      --accent: #9c27b0;
+      --accent-hover: #7b1fa2;
+      --danger: #d32f2f;
+      --border: #333333;
     }
 
     * {
@@ -23,69 +28,147 @@
     body {
       background-color: var(--bg);
       color: var(--label);
-      font: 15px/1.45 -apple-system, "Segoe UI", sans-serif;
-      padding: 16px;
-      padding-bottom: 48px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding-bottom: 48px; /* Telefon alt çubuk boşluğu */
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      min-height: 100vh;
     }
 
-    header {
+    /* Üst Başlık */
+    .header {
+      background: var(--card-bg);
+      padding: 14px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
 
-    h1 {
-      font-size: 18px;
-      font-weight: 700;
+    .logo {
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 20px;
+      letter-spacing: 0.5px;
     }
 
-    small {
-      color: var(--label-2);
-      font-size: 13px;
-    }
-
-    .card {
+    .char-badge {
+      font-size: 12px;
+      color: var(--label-secondary);
       background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      padding: 4px 8px;
+      border-radius: 6px;
     }
 
-    .card h2 {
+    /* Yayın Durum Çubuğu */
+    .status-bar {
+      background: var(--danger);
+      color: white;
+      padding: 10px 16px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .status-bar button {
+      width: auto;
+      padding: 6px 12px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    /* Sekmeler */
+    .tabs {
+      display: flex;
+      background: #181818;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 14px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--card-bg);
+      border: none;
+      color: var(--label-secondary);
       font-size: 15px;
       font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .tab.active {
+      background: #2a2a2a;
+      color: var(--label);
+      border-bottom: 3px solid var(--accent);
+    }
+
+    /* İçerik Alanı */
+    .content {
+      padding: 16px;
+      flex: 1;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    h3 {
+      font-size: 15px;
+      margin-bottom: 12px;
+      color: var(--label-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Form ve Elemanlar */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     input {
       width: 100%;
       min-height: 44px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      color: var(--label);
       padding: 0 12px;
-      font-size: 15px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--label);
+      border-radius: 8px;
+      font-size: 14px;
       outline: none;
     }
 
+    input:focus {
+      border-color: var(--accent);
+    }
+
     button {
-      background: var(--accent);
-      color: #ffffff;
-      border: 0;
-      border-radius: 12px;
       min-height: 44px;
-      font-size: 15px;
-      font-weight: 600;
+      padding: 0 16px;
+      background: var(--accent);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
       cursor: pointer;
-      width: 100%;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button.danger {
+      background: var(--danger);
     }
 
     button.secondary {
@@ -94,117 +177,248 @@
       color: var(--accent);
     }
 
-    button.danger {
-      background: #ff3b30;
-      color: #ffffff;
+    /* Yayın Kartı */
+    .stream-card {
+      background: var(--card-bg);
+      padding: 14px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      background: var(--label-2);
-      color: #fff;
-      text-transform: uppercase;
+    .stream-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .badge.active {
-      background: #34c759;
+    .stream-title {
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .stream-meta {
+      font-size: 12px;
+      color: var(--label-secondary);
+    }
+
+    .no-streams {
+      text-align: center;
+      color: var(--label-secondary);
+      padding: 30px 0;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div>
-      <h1>Downtown Live</h1>
-      <small id="char-info">Yükleniyor…</small>
+  <div class="header">
+    <div class="logo">DownLive</div>
+    <div id="charInfo" class="char-badge">Bağlanıyor...</div>
+  </div>
+
+  <div id="statusBar" class="status-bar">
+    <span id="statusText">● YAYINDASINIZ</span>
+    <button onclick="stopStream()" class="danger">Yayın Bitir</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('discover')">Keşfet</button>
+    <button class="tab" onclick="switchTab('panel')">Yayın Paneli</button>
+  </div>
+
+  <div class="content">
+    <!-- Keşfet Sekmesi -->
+    <div id="discoverPanel" class="panel active">
+      <h3>Aktif Canlı Yayınlar</h3>
+      <div id="streamsList">
+        <div class="no-streams">Canlı yayınlar yükleniyor...</div>
+      </div>
     </div>
-    <span id="status-badge" class="badge">Çevrimdışı</span>
-  </header>
 
-  <!-- Yayın Başlatma Bölümü -->
-  <section class="card">
-    <h2>Yayın Başlat</h2>
-    <input type="text" id="stream-title" placeholder="Yayın başlığı..." />
-    <button id="btn-start">Canlı Yayın Başlat</button>
-  </section>
-
-  <!-- Yayın İzleme Bölümü -->
-  <section class="card">
-    <h2>Yayın İzle</h2>
-    <input type="text" id="watch-id" placeholder="Yayın (Broadcast) ID..." />
-    <button id="btn-watch" class="secondary">Yayına Katıl</button>
-    <button id="btn-leave" class="danger" style="display: none;">Yayından Ayrıl</button>
-  </section>
+    <!-- Yayın Paneli Sekmesi -->
+    <div id="panelPanel" class="panel">
+      <h3>Yayın Bilgileri</h3>
+      <div class="form-group">
+        <input type="text" id="streamTitle" placeholder="Yayın Başlığı">
+        <input type="text" id="streamAuthor" placeholder="Yayıncı Adı (Karakter)">
+        <input type="text" id="streamCategory" placeholder="Kategori (ör. Sohbet, Müzik)">
+        <button id="btnStartStream" onclick="startStream()">Yayını Başlat</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    var phone = PhoneSDK.createPhoneSDK();
+    const API_BASE = "https://emcee-enchilada-eggbeater.ngrok-free.dev/api/streams";
+    let currentStreamId = null;
+    let pingInterval = null;
+    let phoneSDK = null;
 
-    // 1. Tema ve Karakter Bilgisi Yükleme
-    phone.whenReady().then(function (ctx) {
-      var r = document.documentElement.style;
-      if (ctx.theme) {
-        r.setProperty("--label",   ctx.theme.label);
-        r.setProperty("--label-2", ctx.theme.secondaryLabel);
-        r.setProperty("--bg",      ctx.theme.background);
-        r.setProperty("--accent",  ctx.theme.accent);
+    // 1. Phone SDK Entegrasyonu ve Tema Yükleme
+    try {
+      phoneSDK = PhoneSDK.createPhoneSDK();
+      phoneSDK.whenReady().then(function (ctx) {
+        if (ctx.characterId) {
+          document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
+          document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
+        }
+        if (ctx.theme) {
+          document.documentElement.style.setProperty('--bg', ctx.theme.background || '#121212');
+          document.documentElement.style.setProperty('--label', ctx.theme.label || '#ffffff');
+          document.documentElement.style.setProperty('--accent', ctx.theme.accent || '#9c27b0');
+        }
+      }).catch(err => console.log("SDK hazır olma hatası:", err));
+    } catch (e) {
+      document.getElementById("charInfo").textContent = "Web Modu";
+    }
+
+    // 2. Sekme Değiştirme
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+      if (tabName === 'discover') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('discoverPanel').classList.add('active');
+        loadStreams();
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('panelPanel').classList.add('active');
       }
-      document.getElementById("char-info").textContent = "Karakter #" + ctx.characterId;
-    }).catch(function (err) {
-      console.error("SDK Yükleme Hatası:", err);
-    });
+    }
 
-    // 2. Canlı Yayın Başlatma
-    document.getElementById("btn-start").onclick = async function () {
-      var title = document.getElementById("stream-title").value.trim() || "Canlı Yayın";
+    // 3. Yayınları Listeleme
+    function loadStreams() {
+      fetch(API_BASE, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      })
+      .then(res => res.json())
+      .then(streams => {
+        const listDiv = document.getElementById('streamsList');
+        if (!streams || streams.length === 0) {
+          listDiv.innerHTML = '<div class="no-streams">Şu an aktif canlı yayın bulunmuyor</div>';
+          return;
+        }
 
-      try {
-        var broadcast = await phone.live.startBroadcast({ title: title });
-        document.getElementById("status-badge").textContent = "YAYINDA";
-        document.getElementById("status-badge").classList.add("active");
-        
-        alert("Yayın Başladı!\nYayın ID: " + broadcast.broadcastId);
-      } catch (e) {
-        alert("Hata: " + (e.code || "Yayın başlatılamadı"));
-      }
-    };
+        listDiv.innerHTML = streams.map(s => `
+          <div class="stream-card">
+            <div class="stream-info">
+              <div class="stream-title">${escapeHtml(s.title)} ${s.id === currentStreamId ? '<small>(Siz)</small>' : ''}</div>
+              <div class="stream-meta">${escapeHtml(s.author || 'Yayıncı')} • ${escapeHtml(s.category || 'Genel')}</div>
+            </div>
+            ${s.id !== currentStreamId ? `
+              <button class="secondary" style="width: auto; min-height: 36px; font-size: 12px;" onclick="watchStream('${s.id}')">Katıl</button>
+            ` : ''}
+          </div>
+        `).join('');
+      })
+      .catch(err => {
+        console.error("Yayınlar yüklenemedi:", err);
+        document.getElementById('streamsList').innerHTML = '<div class="no-streams">Yayın listesi alınamadı</div>';
+      });
+    }
 
-    // 3. Yayına Katılma
-    document.getElementById("btn-watch").onclick = async function () {
-      var broadcastId = document.getElementById("watch-id").value.trim();
-      if (!broadcastId) {
-        alert("Lütfen bir Broadcast ID girin.");
+    // 4. Yayın Başlatma
+    async function startStream() {
+      const title = document.getElementById('streamTitle').value.trim();
+      const author = document.getElementById('streamAuthor').value.trim() || 'Yayıncı';
+      const category = document.getElementById('streamCategory').value.trim() || 'Genel';
+
+      if (!title) {
+        alert('Lütfen bir yayın başlığı girin!');
         return;
       }
 
-      try {
-        await phone.live.watch({ broadcastId: broadcastId });
+      currentStreamId = 'stream_' + Math.floor(Math.random() * 1000000);
 
-        document.getElementById("btn-watch").style.display = "none";
-        document.getElementById("btn-leave").style.display = "block";
-        document.getElementById("status-badge").textContent = "İZLENİYOR";
-        document.getElementById("status-badge").classList.add("active");
-      } catch (e) {
-        alert("Hata: " + (e.code || "Yayına katılanamadı"));
+      // İsteğe bağlı: Telefon içi canlı yayın servisini tetikle
+      if (phoneSDK && phoneSDK.live) {
+        try {
+          await phoneSDK.live.startBroadcast({ title: title });
+        } catch (e) {
+          console.warn("Phone SDK Broadcast başlatılamadı:", e);
+        }
       }
-    };
 
-    // 4. Yayından Ayrılma
-    document.getElementById("btn-leave").onclick = async function () {
-      try {
-        await phone.live.leave();
+      fetch(API_BASE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({ id: currentStreamId, title, author, category })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('statusBar').style.display = 'flex';
+          document.getElementById('statusText').innerText = `● YAYINDASINIZ: ${title}`;
 
-        document.getElementById("btn-watch").style.display = "block";
-        document.getElementById("btn-leave").style.display = "none";
-        document.getElementById("status-badge").textContent = "Çevrimdışı";
-        document.getElementById("status-badge").classList.remove("active");
-      } catch (e) {
-        alert("Hata: " + (e.code || "Ayrılma başarısız"));
+          if (pingInterval) clearInterval(pingInterval);
+          pingInterval = setInterval(() => {
+            fetch(`${API_BASE}/${currentStreamId}/ping`, {
+              method: 'POST',
+              headers: { 'ngrok-skip-browser-warning': 'true' }
+            }).catch(err => console.error("Ping hatası:", err));
+          }, 2500);
+
+          switchTab('discover');
+        }
+      })
+      .catch(err => alert('Yayın başlatılamadı: ' + err));
+    }
+
+    // 5. Yayına Katılma (İzleme)
+    async function watchStream(broadcastId) {
+      if (phoneSDK && phoneSDK.live) {
+        try {
+          await phoneSDK.live.watch({ broadcastId: broadcastId });
+        } catch (e) {
+          alert("Yayına katılınamadı: " + (e.code || e.message || "Hata"));
+        }
+      } else {
+        alert("Yayına katılınıyor ID: " + broadcastId);
       }
-    };
+    }
+
+    // 6. Yayın Bitirme
+    async function stopStream() {
+      if (!currentStreamId) return;
+
+      if (phoneSDK && phoneSDK.live) {
+        try {
+          await phoneSDK.live.leave();
+        } catch (e) {
+          console.warn("Phone SDK leave hatası:", e);
+        }
+      }
+
+      fetch(`${API_BASE}/${currentStreamId}`, {
+        method: 'DELETE',
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      })
+      .then(() => cleanupStream())
+      .catch(() => cleanupStream());
+    }
+
+    function cleanupStream() {
+      if (pingInterval) clearInterval(pingInterval);
+      pingInterval = null;
+      currentStreamId = null;
+      document.getElementById('statusBar').style.display = 'none';
+      loadStreams();
+    }
+
+    // Yardımcı: HTML Enjeksiyon Koruması
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    setInterval(loadStreams, 4000);
+    loadStreams();
   </script>
 </body>
 </html>
