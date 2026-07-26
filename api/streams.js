@@ -1,4 +1,5 @@
 let memoryStreams = [];
+let latestFrames = {}; // Canlı yayın karelerini geçici hafızada tutar
 const KV_URL = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/downlive_streams";
 
 async function fetchWithTimeout(url, options = {}, timeout = 1500) {
@@ -47,6 +48,12 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Web izleyicisi canlı kare istiyorsa
+    if (req.method === 'GET' && req.query.frameId) {
+      const frameData = latestFrames[req.query.frameId] || null;
+      return res.status(200).json({ frame: frameData });
+    }
+
     let streamsList = await getStreams();
     const now = Date.now();
     streamsList = streamsList.filter(s => now - (s.lastPing || 0) < 30000);
@@ -62,7 +69,13 @@ module.exports = async (req, res) => {
       }
       body = body || {};
 
-      const { id, title, author, category, streamUrl, isPing } = body;
+      const { id, title, author, category, frame, isPing } = body;
+
+      // Oyun tarafından gelen canlı görüntü karesi
+      if (id && frame) {
+        latestFrames[id] = frame;
+        return res.status(200).json({ success: true });
+      }
 
       if (isPing) {
         const stream = streamsList.find(s => s.id === id);
@@ -85,7 +98,6 @@ module.exports = async (req, res) => {
         title,
         author: author || 'Yayıncı',
         category: category || 'Genel',
-        streamUrl: streamUrl || '',
         lastPing: Date.now()
       };
 
@@ -99,6 +111,7 @@ module.exports = async (req, res) => {
       const streamId = req.query.id;
       if (streamId) {
         streamsList = streamsList.filter(s => s.id !== streamId);
+        delete latestFrames[streamId];
         await saveStreams(streamsList);
       }
       return res.status(200).json({ success: true });
