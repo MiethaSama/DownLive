@@ -208,6 +208,41 @@
       padding: 20px 0;
       font-size: 13px;
     }
+
+    /* Web İzleyici Oynatıcı Alanı */
+    .player-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 999;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .player-container {
+      width: 100%;
+      height: 220px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .player-container iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
   </style>
 </head>
 <body>
@@ -242,9 +277,19 @@
         <input type="text" id="streamTitle" placeholder="Yayın Başlığı">
         <input type="text" id="streamAuthor" placeholder="Yayıncı Adı">
         <input type="text" id="streamCategory" placeholder="Kategori (Sohbet, Müzik)">
+        <input type="text" id="streamUrl" placeholder="Yayın Linki (Twitch/YouTube/Kick - Opsiyonel)">
         <button id="btnStartStream" onclick="startStream()">Yayını Başlat</button>
       </div>
     </div>
+  </div>
+
+  <!-- Web Oynatıcı Penceresi -->
+  <div id="playerModal" class="player-modal">
+    <div class="player-header">
+      <span id="playerTitle" style="font-weight:bold; font-size:14px;">Yayın İzleniyor</span>
+      <button onclick="closePlayer()" class="danger" style="min-height:30px; padding:0 8px; font-size:12px;">Kapat</button>
+    </div>
+    <div class="player-container" id="playerContainer"></div>
   </div>
 
   <script>
@@ -252,6 +297,7 @@
     let currentStreamId = null;
     let pingInterval = null;
     let phone = null;
+    let cachedStreams = [];
 
     document.addEventListener("DOMContentLoaded", function () {
       const isIframe = window.self !== window.top;
@@ -328,6 +374,7 @@
         return res.json();
       })
       .then(streams => {
+        cachedStreams = streams || [];
         const listDiv = document.getElementById('streamsList');
         if (!streams || !Array.isArray(streams) || streams.length === 0) {
           listDiv.innerHTML = '<div class="no-streams">Şu an aktif yayın bulunmuyor</div>';
@@ -356,6 +403,7 @@
       const title = document.getElementById('streamTitle').value.trim();
       const author = document.getElementById('streamAuthor').value.trim() || 'Yayıncı';
       const category = document.getElementById('streamCategory').value.trim() || 'Genel';
+      const streamUrl = document.getElementById('streamUrl').value.trim();
 
       if (!title) {
         showError('Lütfen bir yayın başlığı girin!');
@@ -401,7 +449,7 @@
         const res = await fetch(API_BASE, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ id: currentStreamId, title, author, category })
+          body: JSON.stringify({ id: currentStreamId, title, author, category, streamUrl })
         });
 
         const data = await res.json();
@@ -432,30 +480,43 @@
     }
 
     async function watchStream(broadcastId) {
-  hideError();
+      hideError();
+      const streamObj = cachedStreams.find(s => s.id === broadcastId);
 
-  // 1. Durum: Web üzerinden açılan yayınlara oyundan girilmeye çalışırsa
-  if (broadcastId.startsWith('web_')) {
-    if (phone) {
-      showError("Bu yayın Web'den açıldığı için oyun içi kamera görüntüsü barındırmaz.");
-    } else {
-      alert("Bu yayın Web üzerinden başlatılmış. (ID: " + broadcastId + ")");
-    }
-    return;
-  }
+      // 1. Durum: Oyun içerisindeyse SDK ile izle
+      if (phone && phone.live && !broadcastId.startsWith('web_')) {
+        try {
+          await phone.live.watch({ broadcastId: broadcastId });
+          return;
+        } catch (e) {
+          console.warn("SDK Watch hatası, alternatif deneniyor:", e);
+        }
+      }
 
-  // 2. Durum: Oyundan açılan gerçek yayına katılım
-  if (phone && phone.live) {
-    try {
-      await phone.live.watch({ broadcastId: broadcastId });
-    } catch (e) {
-      showError("Katılma Hatası: " + (e.code || e.message));
+      // 2. Durum: Web Üzerinden İzleme
+      if (streamObj && streamObj.streamUrl) {
+        document.getElementById('playerTitle').innerText = streamObj.title;
+        const container = document.getElementById('playerContainer');
+
+        let url = streamObj.streamUrl;
+        if (url.includes('youtube.com/watch?v=')) {
+          url = url.replace('watch?v=', 'embed/');
+        } else if (url.includes('twitch.tv/')) {
+          const channel = url.split('twitch.tv/')[1];
+          url = `https://player.twitch.tv/?channel=${channel}&parent=${window.location.hostname}`;
+        }
+
+        container.innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
+        document.getElementById('playerModal').style.display = 'flex';
+      } else {
+        alert("Bu yayına ait web izleme linki eklenmemiş. Web'den izlemek için yayıncının 'Yayın Linki' alanını doldurması gerekir.");
+      }
     }
-  } else {
-    // Web tarayıcısından oyundaki yayını izlemeye çalışırsa
-    alert("Oyundaki canlı yayınları sadece oyun içi telefondan izleyebilirsiniz.");
-  }
-}
+
+    function closePlayer() {
+      document.getElementById('playerModal').style.display = 'none';
+      document.getElementById('playerContainer').innerHTML = '';
+    }
 
     async function stopStream() {
       if (!currentStreamId) return;

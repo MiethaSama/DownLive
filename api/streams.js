@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
       }
       body = body || {};
 
-      const { id, title, author, category, isPing } = body;
+      const { id, title, author, category, streamUrl, isPing } = body;
 
       if (isPing) {
         const stream = streamsList.find(s => s.id === id);
@@ -85,6 +85,7 @@ module.exports = async (req, res) => {
         title,
         author: author || 'Yayıncı',
         category: category || 'Genel',
+        streamUrl: streamUrl || '',
         lastPing: Date.now()
       };
 
