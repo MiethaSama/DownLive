@@ -451,7 +451,7 @@
       try {
         const res = await fetch(API_BASE, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: currentStreamId, title, author, category })
         });
 
@@ -465,7 +465,7 @@
           pingInterval = setInterval(() => {
             fetch(API_BASE, {
               method: 'POST',
-              headers: { 'Content-Type': 'text/plain' },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ id: currentStreamId, isPing: true })
             }).catch(err => console.error("Ping hatası:", err));
           }, 3000);
@@ -488,7 +488,7 @@
       if (frameSendInterval) clearInterval(frameSendInterval);
 
       const canvas = document.createElement('canvas');
-      canvas.width = 240;  // Hafif ve hızlı aktarım için küçültüldü
+      canvas.width = 240;
       canvas.height = 135;
       const ctx = canvas.getContext('2d');
 
@@ -498,15 +498,15 @@
 
         try {
           ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          const base64Frame = canvas.toDataURL('image/jpeg', 0.3); // Düşük kalite ile boyut optimize edildi
+          const base64Frame = canvas.toDataURL('image/jpeg', 0.3);
 
           fetch(API_BASE, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: streamId, frame: base64Frame })
           }).catch(() => {});
         } catch (e) {}
-      }, 500); // Saniyede 2 kare olarak güncellendi (stabilite için)
+      }, 500);
     }
 
     async function watchStream(broadcastId) {
