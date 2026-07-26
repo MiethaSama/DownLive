@@ -254,31 +254,40 @@
     let phone = null;
 
     document.addEventListener("DOMContentLoaded", function () {
-      if (window.PhoneSDK) {
+      const isIframe = window.self !== window.top;
+
+      if (isIframe && window.PhoneSDK) {
         try {
           phone = PhoneSDK.createPhoneSDK();
-          phone.whenReady().then(function (ctx) {
+          
+          const readyPromise = phone.whenReady();
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SDK_TIMEOUT")), 2000));
+
+          Promise.race([readyPromise, timeoutPromise]).then(function (ctx) {
             var r = document.documentElement.style;
-            if (ctx.theme) {
+            if (ctx && ctx.theme) {
               if (ctx.theme.label) r.setProperty("--label", ctx.theme.label);
               if (ctx.theme.secondaryLabel) r.setProperty("--label-2", ctx.theme.secondaryLabel);
               if (ctx.theme.background) r.setProperty("--bg", ctx.theme.background);
               if (ctx.theme.accent) r.setProperty("--accent", ctx.theme.accent);
             }
 
-            if (ctx.characterId) {
+            if (ctx && ctx.characterId) {
               document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
               document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
             } else {
               document.getElementById("charInfo").textContent = "Hazır";
             }
           }).catch(err => {
+            phone = null;
             document.getElementById("charInfo").textContent = "Web Modu";
           });
         } catch (e) {
+          phone = null;
           document.getElementById("charInfo").textContent = "Web Modu";
         }
       } else {
+        phone = null;
         document.getElementById("charInfo").textContent = "Web Modu";
       }
 
@@ -361,22 +370,27 @@
 
       if (phone && phone.live) {
         try {
-          const res = await phone.live.startBroadcast({ title: title });
+          const sdkPromise = phone.live.startBroadcast({ title: title });
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SDK_TIMEOUT")), 2500));
+          
+          const res = await Promise.race([sdkPromise, timeoutPromise]);
           if (res && res.broadcastId) {
             realBroadcastId = res.broadcastId;
           }
         } catch (e) {
-          btn.disabled = false;
-          btn.innerText = "Yayını Başlat";
-          if (e.code === 'USER_DENIED') {
-            showError("Yayın isteği reddedildi.");
-            return;
-          } else if (e.code === 'PERMISSION_DENIED') {
-            showError("Eksik İzin: 'live.broadcast' izni gerekiyor.");
-            return;
-          } else {
-            showError("SDK Hatası: " + (e.code || e.message));
-            return;
+          if (e.message !== "SDK_TIMEOUT") {
+            btn.disabled = false;
+            btn.innerText = "Yayını Başlat";
+            if (e.code === 'USER_DENIED') {
+              showError("Yayın isteği reddedildi.");
+              return;
+            } else if (e.code === 'PERMISSION_DENIED') {
+              showError("Eksik İzin: 'live.broadcast' izni gerekiyor.");
+              return;
+            } else {
+              showError("SDK Hatası: " + (e.code || e.message));
+              return;
+            }
           }
         }
       }
