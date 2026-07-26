@@ -372,7 +372,7 @@
     }
 
     function loadStreams() {
-      fetch(API_BASE)
+      fetch(API_BASE, { cache: 'no-store' })
       .then(res => {
         if (!res.ok) throw new Error("API Hatası: " + res.status);
         return res.json();
@@ -488,7 +488,7 @@
       if (frameSendInterval) clearInterval(frameSendInterval);
 
       const canvas = document.createElement('canvas');
-      canvas.width = 160;  // Çok hafif boyut
+      canvas.width = 160;
       canvas.height = 90;
       const ctx = canvas.getContext('2d');
 
@@ -498,7 +498,7 @@
 
         try {
           ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          const base64Frame = canvas.toDataURL('image/jpeg', 0.2); // Yüksek sıkıştırma
+          const base64Frame = canvas.toDataURL('image/jpeg', 0.2);
 
           fetch(API_BASE, {
             method: 'POST',
@@ -506,7 +506,7 @@
             body: JSON.stringify({ id: streamId, frame: base64Frame })
           }).catch(() => {});
         } catch (e) {}
-      }, 700); // 700ms aralıkla gönderim
+      }, 700);
     }
 
     async function watchStream(broadcastId) {
@@ -528,7 +528,7 @@
       if (frameWatchInterval) clearInterval(frameWatchInterval);
 
       frameWatchInterval = setInterval(() => {
-        fetch(`${API_BASE}?frameId=${broadcastId}`)
+        fetch(`${API_BASE}?frameId=${broadcastId}`, { cache: 'no-store' })
           .then(res => res.json())
           .then(data => {
             if (data && data.frame) {

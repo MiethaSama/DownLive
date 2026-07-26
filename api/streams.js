@@ -50,6 +50,7 @@ module.exports = async (req, res) => {
     let framesMap = await getKV('downlive_frames', memoryFrames);
 
     if (req.method === 'GET' && req.query.frameId) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       const frameData = framesMap[req.query.frameId] || null;
       return res.status(200).json({ frame: frameData });
     }
@@ -64,6 +65,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       return res.status(200).json(streamsList);
     }
 
