@@ -160,6 +160,11 @@
       background: var(--accent-hover);
     }
 
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     button.danger {
       background: var(--danger);
     }
@@ -168,6 +173,17 @@
       background: transparent;
       border: 1px solid var(--accent);
       color: var(--accent);
+    }
+
+    .error-box {
+      background: rgba(211, 47, 47, 0.2);
+      border: 1px solid var(--danger);
+      color: #ff6b6b;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 10px;
     }
 
     .stream-card {
@@ -223,6 +239,7 @@
   </div>
 
   <div class="content">
+    <!-- Keşfet Sekmesi -->
     <div id="discoverPanel" class="panel active">
       <h3>Aktif Canlı Yayınlar</h3>
       <div id="streamsList">
@@ -230,10 +247,12 @@
       </div>
     </div>
 
+    <!-- Yayın Paneli Sekmesi -->
     <div id="panelPanel" class="panel">
       <h3>Yayın Bilgileri</h3>
+      <div id="formError" class="error-box"></div>
       <div class="form-group">
-        <input type="text" id="streamTitle" placeholder="Yayın Başlığı">
+        <input type="text" id="streamTitle" placeholder="Yayın Başlığı (Zorunlu)">
         <input type="text" id="streamAuthor" placeholder="Yayıncı Adı (Karakter)">
         <input type="text" id="streamCategory" placeholder="Kategori (ör. Sohbet, Müzik)">
         <button id="btnStartStream" onclick="startStream()">Yayını Başlat</button>
@@ -242,7 +261,6 @@
   </div>
 
   <script>
-    // Vercel içindeki API endpoint'i (Tamamen göreceli yol)
     const API_BASE = "/api/streams";
     let currentStreamId = null;
     let pingInterval = null;
@@ -273,6 +291,18 @@
       loadStreams();
       setInterval(loadStreams, 4000);
     });
+
+    function showError(msg) {
+      const errBox = document.getElementById('formError');
+      errBox.innerText = msg;
+      errBox.style.display = 'block';
+    }
+
+    function hideError() {
+      const errBox = document.getElementById('formError');
+      errBox.innerText = '';
+      errBox.style.display = 'none';
+    }
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -316,33 +346,41 @@
     }
 
     async function startStream() {
-      const title = document.getElementById('streamTitle').value.trim();
+      hideError();
+      const titleInput = document.getElementById('streamTitle');
+      const title = titleInput ? titleInput.value.trim() : '';
       const author = document.getElementById('streamAuthor').value.trim() || 'Yayıncı';
       const category = document.getElementById('streamCategory').value.trim() || 'Genel';
 
       if (!title) {
-        alert('Lütfen bir yayın başlığı girin!');
+        showError('Lütfen bir yayın başlığı girin!');
         return;
       }
 
+      const btn = document.getElementById('btnStartStream');
+      btn.disabled = true;
+      btn.innerText = "Başlatılıyor...";
+
       currentStreamId = 'stream_' + Math.floor(Math.random() * 1000000);
 
-      if (phoneSDK && phoneSDK.live) {
-        try {
-          await phoneSDK.live.startBroadcast({ title: title });
-        } catch (e) {
-          console.warn("Phone SDK Broadcast hatası:", e);
-        }
+      // 1. SDK çağrısını kilitlenmeye yol açmayacak şekilde (await etmeden) arka planda başlatıyoruz
+      if (phoneSDK && phoneSDK.live && typeof phoneSDK.live.startBroadcast === 'function') {
+        phoneSDK.live.startBroadcast({ title: title }).catch(e => {
+          console.warn("Phone SDK Broadcast başlatılamadı:", e);
+        });
       }
 
-      fetch(API_BASE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentStreamId, title, author, category })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
+      // 2. Vercel backend'ine POST isteği gönderiyoruz
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: currentStreamId, title, author, category })
+        });
+
+        const data = await res.json();
+
+        if (data && data.success) {
           document.getElementById('statusBar').style.display = 'flex';
           document.getElementById('statusText').innerText = `● YAYINDASINIZ: ${title}`;
 
@@ -356,9 +394,16 @@
           }, 3000);
 
           switchTab('discover');
+        } else {
+          showError("Yayın başlatılamadı: " + (data.error || "Bilinmeyen hata"));
         }
-      })
-      .catch(err => alert('Yayın başlatılamadı: ' + err));
+      } catch (err) {
+        console.error("Fetch hatası:", err);
+        showError("Sunucuya bağlanılamadı. Lütfen tekrar deneyin.");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Yayını Başlat";
+      }
     }
 
     async function watchStream(broadcastId) {
@@ -366,7 +411,7 @@
         try {
           await phoneSDK.live.watch({ broadcastId: broadcastId });
         } catch (e) {
-          alert("Yayına katılınamadı: " + (e.code || e.message || "Hata"));
+          showError("Yayına katılınamadı: " + (e.code || e.message || "Hata"));
         }
       } else {
         alert("Yayına katılınıyor ID: " + broadcastId);
