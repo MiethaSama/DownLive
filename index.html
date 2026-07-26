@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>DownLive</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: #1e1e1e;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .logo {
+            font-weight: bold;
+            color: #9c27b0;
+            font-size: 20px;
+        }
+        .status-bar {
+            background: #d32f2f;
+            color: white;
+            padding: 10px 15px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tabs {
+            display: flex;
+            background: #181818;
+            border-bottom: 1px solid #333;
+        }
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background: #1e1e1e;
+            border: none;
+            color: #aaa;
+            font-size: 16px;
+        }
+        .tab.active {
+            background: #2a2a2a;
+            color: #fff;
+            border-bottom: 2px solid #9c27b0;
+        }
+        .content {
+            padding: 20px;
+        }
+        .panel {
+            display: none;
+        }
+        .panel.active {
+            display: block;
+        }
+        .stream-card {
+            background: #1e1e1e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 4px;
+        }
+        button {
+            background: #9c27b0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #7b1fa2;
+        }
+        button.danger {
+            background: #d32f2f;
+        }
+        button.danger:hover {
+            background: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">DownLive</div>
+    </div>
+
+    <div id="statusBar" class="status-bar">
+        <span id="statusText">● YAYINDASINIZ</span>
+        <button onclick="stopStream()" class="danger" style="width: auto; padding: 5px 15px; margin: 0;">Bitir</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('discover')">Keşfet</button>
+        <button class="tab" onclick="switchTab('panel')">Yayın Panelim</button>
+    </div>
+
+    <div class="content">
+        <!-- Keşfet Sekmesi -->
+        <div id="discoverPanel" class="panel active">
+            <h3>AKTİF CANLI YAYINLAR</h3>
+            <div id="streamsList">Şu an aktif canlı yayın bulunmuyor</div>
+        </div>
+
+        <!-- Yayın Paneli Sekmesi -->
+        <div id="panelPanel" class="panel">
+            <h3>Yayın Ayarları</h3>
+            <div id="controlContent">
+                <input type="text" id="streamTitle" placeholder="Yayın Başlığı">
+                <input type="text" id="streamAuthor" placeholder="Yayıncı Adı">
+                <input type="text" id="streamCategory" placeholder="Kategori">
+                <button onclick="startStream()">Yayın Başlat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "/api/streams";
+        let currentStreamId = null;
+        let pingInterval = null;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            
+            if (tabName === 'discover') {
+                document.querySelector('.tabs button:nth-child(1)').classList.add('active');
+                document.getElementById('discoverPanel').classList.add('active');
+                loadStreams();
+            } else {
+                document.querySelector('.tabs button:nth-child(2)').classList.add('active');
+                document.getElementById('panelPanel').classList.add('active');
+            }
+        }
+
+        function loadStreams() {
+            fetch(API_BASE, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
+                .then(res => res.json())
+                .then(streams => {
+                    const listDiv = document.getElementById('streamsList');
+                    if (streams.length === 0) {
+                        listDiv.innerHTML = 'Şu an aktif canlı yayın bulunmuyor';
+                        return;
+                    }
+                    listDiv.innerHTML = streams.map(s => `
+                        <div class="stream-card">
+                            <strong>${s.title}</strong> ${s.id === currentStreamId ? '(Siz)' : ''}<br>
+                            <small>Yayıncı: ${s.author} | Kategori: ${s.category}</small>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => console.error("Yayınlar yüklenemedi:", err));
+        }
+
+        function startStream() {
+            const title = document.getElementById('streamTitle').value;
+            const author = document.getElementById('streamAuthor').value || 'Yayıncı';
+            const category = document.getElementById('streamCategory').value || 'Genel';
+            
+            if (!title) {
+                alert('Lütfen bir yayın başlığı yazın!');
+                return;
+            }
+
+            currentStreamId = 'stream_' + Math.floor(Math.random() * 1000000);
+
+            fetch(API_BASE, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
+                body: JSON.stringify({ id: currentStreamId, title, author, category })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('statusBar').style.display = 'flex';
+                    document.getElementById('statusText').innerText = `● YAYINDASINIZ: ${title}`;
+                    
+                    if (pingInterval) clearInterval(pingInterval);
+                    pingInterval = setInterval(() => {
+                        fetch(`${API_BASE}/${currentStreamId}/ping`, { 
+                            method: 'POST',
+                            headers: { 'ngrok-skip-browser-warning': 'true' }
+                        }).catch(err => console.error("Ping atılamadı:", err));
+                    }, 2500);
+
+                    switchTab('discover');
+                }
+            })
+            .catch(err => alert('Yayın başlatılamadı: ' + err));
+        }
+
+        function stopStream() {
+            if (!currentStreamId) return;
+
+            fetch(`${API_BASE}/${currentStreamId}`, { 
+                method: 'DELETE',
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            })
+                .then(() => cleanupStream())
+                .catch(() => cleanupStream());
+        }
+
+        function cleanupStream() {
+            if (pingInterval) clearInterval(pingInterval);
+            pingInterval = null;
+            currentStreamId = null;
+            document.getElementById('statusBar').style.display = 'none';
+            loadStreams();
+        }
+
+        setInterval(loadStreams, 3000);
+        loadStreams();
+    </script>
+</body>
+</html>
