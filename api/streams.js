@@ -1,8 +1,7 @@
 let memoryStreams = [];
-let memoryFrames = {}; // Kareler ram üzerinde hızlı ve hafif tutulur
-const KV_URL = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/downlive_streams";
+const KV_BASE = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/";
 
-async function fetchWithTimeout(url, options = {}, timeout = 3000) {
+async function fetchWithTimeout(url, options = {}, timeout = 2500) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -15,31 +14,24 @@ async function fetchWithTimeout(url, options = {}, timeout = 3000) {
   }
 }
 
-async function getStreams() {
+async function getKV(key, fallback) {
   try {
-    const res = await fetchWithTimeout(KV_URL, { headers: { 'Cache-Control': 'no-cache' } }, 3000);
+    const res = await fetchWithTimeout(KV_BASE + key, { headers: { 'Cache-Control': 'no-cache' } }, 2000);
     if (res && res.ok) {
       const text = await res.text();
-      if (text) {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          memoryStreams = parsed;
-          return parsed;
-        }
-      }
+      if (text) return JSON.parse(text);
     }
   } catch (e) {}
-  return memoryStreams;
+  return fallback;
 }
 
-async function saveStreams(list) {
-  memoryStreams = list;
+async function setKV(key, data) {
   try {
-    await fetchWithTimeout(KV_URL, {
+    await fetchWithTimeout(KV_BASE + key, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(list)
-    }, 3000);
+      body: JSON.stringify(data)
+    }, 2000);
   } catch (e) {}
 }
 
@@ -54,19 +46,19 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Canlı kare istemi
+    // 1. Canlı kare talebi (Merkezi KVDB'den okunur)
     if (req.method === 'GET' && req.query.frameId) {
-      const frameData = memoryFrames[req.query.frameId] || null;
+      const frameData = await getKV('frame_' + req.query.frameId, null);
       return res.status(200).json({ frame: frameData });
     }
 
-    let streamsList = await getStreams();
+    let streamsList = await getKV('downlive_streams', memoryStreams);
     const now = Date.now();
     
     const activeStreams = streamsList.filter(s => now - (s.lastPing || 0) < 45000);
     if (activeStreams.length !== streamsList.length) {
       streamsList = activeStreams;
-      await saveStreams(streamsList);
+      await setKV('downlive_streams', streamsList);
     }
 
     if (req.method === 'GET') {
@@ -82,9 +74,9 @@ module.exports = async (req, res) => {
 
       const { id, title, author, category, frame, isPing } = body;
 
-      // Gelen kareyi hafızaya yaz (Ağ yükünü önler)
+      // 2. Gelen kareyi merkezi KVDB'ye kaydet
       if (id && frame) {
-        memoryFrames[id] = frame;
+        await setKV('frame_' + id, frame);
         return res.status(200).json({ success: true });
       }
 
@@ -92,7 +84,7 @@ module.exports = async (req, res) => {
         const stream = streamsList.find(s => s.id === id);
         if (stream) {
           stream.lastPing = Date.now();
-          await saveStreams(streamsList);
+          await setKV('downlive_streams', streamsList);
           return res.status(200).json({ success: true });
         }
         return res.status(200).json({ success: true, note: 're-registered' });
@@ -113,7 +105,7 @@ module.exports = async (req, res) => {
       };
 
       streamsList.push(newStream);
-      await saveStreams(streamsList);
+      await setKV('downlive_streams', streamsList);
 
       return res.status(200).json({ success: true, stream: newStream });
     }
@@ -122,8 +114,9 @@ module.exports = async (req, res) => {
       const streamId = req.query.id;
       if (streamId) {
         streamsList = streamsList.filter(s => s.id !== streamId);
-        delete memoryFrames[streamId];
-        await saveStreams(streamsList);
+        await setKV('downlive_streams', streamsList);
+        // Kareyi veritabanından sil
+        await setKV('frame_' + streamId, null);
       }
       return res.status(200).json({ success: true });
     }
