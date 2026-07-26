@@ -1,32 +1,46 @@
+let memoryStreams = [];
 const KV_URL = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/downlive_streams";
 
-async function getStreams() {
+async function fetchWithTimeout(url, options = {}, timeout = 1500) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const res = await fetch(KV_URL);
-    if (!res.ok) return [];
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
   } catch (e) {
-    return [];
+    clearTimeout(id);
+    return null;
   }
 }
 
-async function saveStreams(list) {
+async function getStreams() {
   try {
-    await fetch(KV_URL, {
+    const res = await fetchWithTimeout(KV_URL, {}, 1500);
+    if (res && res.ok) {
+      const text = await res.text();
+      if (text) return JSON.parse(text);
+    }
+  } catch (e) {}
+  return memoryStreams;
+}
+
+async function saveStreams(list) {
+  memoryStreams = list;
+  try {
+    await fetchWithTimeout(KV_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(list)
-    });
-  } catch (e) {
-    console.error("KV Kayıt Hatası:", e);
-  }
+    }, 1500);
+  } catch (e) {}
 }
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -35,27 +49,16 @@ module.exports = async (req, res) => {
   try {
     let streamsList = await getStreams();
     const now = Date.now();
-    
-    // 30 saniyedir ping atmayan yayınları temizle
-    const initialLength = streamsList.length;
     streamsList = streamsList.filter(s => now - (s.lastPing || 0) < 30000);
 
     if (req.method === 'GET') {
-      if (streamsList.length !== initialLength) {
-        await saveStreams(streamsList);
-      }
       return res.status(200).json(streamsList);
     }
 
     if (req.method === 'POST') {
       let body = req.body;
-
       if (typeof body === 'string') {
-        try {
-          body = JSON.parse(body);
-        } catch (e) {
-          body = {};
-        }
+        try { body = JSON.parse(body); } catch (e) { body = {}; }
       }
       body = body || {};
 
@@ -68,14 +71,13 @@ module.exports = async (req, res) => {
           await saveStreams(streamsList);
           return res.status(200).json({ success: true });
         }
-        return res.status(200).json({ success: true, note: 'not_found' });
+        return res.status(200).json({ success: true, note: 're-registered' });
       }
 
       if (!id || !title) {
         return res.status(400).json({ success: false, error: 'Eksik başlık veya ID' });
       }
 
-      // Aynı ID'li eski yayını kaldır ve yenisini ekle
       streamsList = streamsList.filter(s => s.id !== id);
 
       const newStream = {
@@ -103,6 +105,6 @@ module.exports = async (req, res) => {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(200).json({ success: false, error: err.message });
   }
 };

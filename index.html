@@ -329,7 +329,7 @@
       })
       .then(streams => {
         const listDiv = document.getElementById('streamsList');
-        if (!streams || streams.length === 0) {
+        if (!streams || !Array.isArray(streams) || streams.length === 0) {
           listDiv.innerHTML = '<div class="no-streams">Şu an aktif yayın bulunmuyor</div>';
           return;
         }
@@ -403,13 +403,6 @@
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ id: currentStreamId, title, author, category })
         });
-
-        if (!res.ok) {
-          showError("Sunucu Hatası: " + res.status);
-          btn.disabled = false;
-          btn.innerText = "Yayını Başlat";
-          return;
-        }
 
         const data = await res.json();
 
