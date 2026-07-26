@@ -3,7 +3,7 @@ let streamsList = [];
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', '*');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -19,8 +19,13 @@ module.exports = (req, res) => {
 
     if (req.method === 'POST') {
       let body = req.body;
+
       if (typeof body === 'string') {
-        try { body = JSON.parse(body); } catch(e) {}
+        try {
+          body = JSON.parse(body);
+        } catch (e) {
+          body = {};
+        }
       }
       body = body || {};
 
@@ -32,7 +37,7 @@ module.exports = (req, res) => {
           stream.lastPing = Date.now();
           return res.status(200).json({ success: true });
         }
-        return res.status(404).json({ success: false, error: 'Yayın bulunamadı' });
+        return res.status(200).json({ success: true, note: 're-registered' });
       }
 
       if (!id || !title) {

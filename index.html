@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DownLive</title>
-  <!-- PhoneSDK Tam Adresi -->
   <script src="https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js"></script>
   <style>
     :root {
@@ -314,7 +313,7 @@
     }
 
     function loadStreams() {
-      fetch(API_BASE, { mode: 'cors' })
+      fetch(API_BASE)
       .then(res => {
         if (!res.ok) throw new Error("API Hatası: " + res.status);
         return res.json();
@@ -387,8 +386,7 @@
       try {
         const res = await fetch(API_BASE, {
           method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({ id: currentStreamId, title, author, category })
         });
 
@@ -409,8 +407,7 @@
           pingInterval = setInterval(() => {
             fetch(API_BASE, {
               method: 'POST',
-              mode: 'cors',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'text/plain' },
               body: JSON.stringify({ id: currentStreamId, isPing: true })
             }).catch(err => console.error("Ping hatası:", err));
           }, 3000);
@@ -450,7 +447,7 @@
         }
       }
 
-      fetch(`${API_BASE}?id=${currentStreamId}`, { method: 'DELETE', mode: 'cors' })
+      fetch(`${API_BASE}?id=${currentStreamId}`, { method: 'DELETE' })
       .then(() => cleanupStream())
       .catch(() => cleanupStream());
     }
