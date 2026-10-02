@@ -1,6 +1,6 @@
 let memoryStreams = [];
 let memoryFrames = {};
-const KV_BASE = "https://kvdb.io/8xK8d4M3vK9x2L1q5Z7wP/";
+const KV_BASE = process.env.KVDB_URL || "https://kvdb.io/YOUR_KVDB_BUCKET_ID/";
 
 async function fetchWithTimeout(url, options = {}, timeout = 4000) {
   const controller = new AbortController();
