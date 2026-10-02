@@ -32,7 +32,7 @@ async function getKV(key, fallback) {
 async function setKV(key, data) {
   try {
     const res = await fetchWithTimeout(KV_BASE + key, {
-      method: 'PUT', // kvdb.io veri güncelleme için PUT kullanır
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }, 4000);
