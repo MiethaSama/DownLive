@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DownLive</title>
+  <script src="https://phone-gw.downtownrpg.com/api/sdk/0.2/child.umd.js"></script>
+  <style>
+    :root {
+      --bg: #121212;
+      --label: #ffffff;
+      --label-2: #aaaaaa;
+      --accent: #9c27b0;
+      --danger: #d32f2f;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--label);
+      font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding-bottom: 32px;
+      min-height: 100vh;
+      max-width: 308px;
+      margin: 0 auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: var(--card-bg);
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 18px;
+    }
+
+    .char-badge {
+      font-size: 11px;
+      color: var(--label-2);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .status-bar {
+      background: var(--danger);
+      color: #fff;
+      padding: 8px 12px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-bar button {
+      min-height: 32px;
+      padding: 0 10px;
+      font-size: 11px;
+    }
+
+    .tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: var(--label-2);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .tab.active {
+      color: var(--label);
+      border-bottom: 3px solid var(--accent);
+    }
+
+    .content {
+      padding: 14px;
+      flex: 1;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    h3 {
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: var(--label-2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--label);
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    button {
+      min-height: 44px;
+      padding: 0 16px;
+      background: var(--accent);
+      color: #ffffff;
+      border: 0;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .error-box {
+      background: rgba(211, 47, 47, 0.2);
+      border: 1px solid var(--danger);
+      color: #ff6b6b;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      display: none;
+      margin-bottom: 10px;
+    }
+
+    .stream-card {
+      background: var(--card-bg);
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stream-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stream-title {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .stream-meta {
+      font-size: 12px;
+      color: var(--label-2);
+    }
+
+    .no-streams {
+      text-align: center;
+      color: var(--label-2);
+      padding: 20px 0;
+      font-size: 13px;
+    }
+
+    .player-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 999;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .player-container {
+      width: 100%;
+      height: 220px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .player-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">DownLive</div>
+    <div id="charInfo" class="char-badge">Bağlanıyor...</div>
+  </div>
+
+  <div id="statusBar" class="status-bar">
+    <span id="statusText">● YAYINDASINIZ</span>
+    <button onclick="stopStream()" class="danger">Bitir</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('discover')">Keşfet</button>
+    <button class="tab" onclick="switchTab('panel')">Yayın Paneli</button>
+  </div>
+
+  <div class="content">
+    <div id="discoverPanel" class="panel active">
+      <h3>Aktif Yayınlar</h3>
+      <div id="streamsList">
+        <div class="no-streams">Canlı yayınlar yükleniyor...</div>
+      </div>
+    </div>
+
+    <div id="panelPanel" class="panel">
+      <h3>Yayın Bilgileri</h3>
+      <div id="formError" class="error-box"></div>
+      <div class="form-group">
+        <input type="text" id="streamTitle" placeholder="Yayın Başlığı">
+        <input type="text" id="streamAuthor" placeholder="Yayıncı Adı">
+        <input type="text" id="streamCategory" placeholder="Kategori (Sohbet, Müzik)">
+        <button id="btnStartStream" onclick="startStream()">Yayını Başlat</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="playerModal" class="player-modal">
+    <div class="player-header">
+      <span id="playerTitle" style="font-weight:bold; font-size:14px;">Canlı Yayın</span>
+      <button onclick="closePlayer()" class="danger" style="min-height:30px; padding:0 8px; font-size:12px;">Kapat</button>
+    </div>
+    <div class="player-container">
+      <img id="streamFrameImg" src="" alt="Yayın Yükleniyor..." />
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://downlive.vercel.app/api/streams";
+    let currentStreamId = null;
+    let pingInterval = null;
+    let frameSendInterval = null;
+    let frameWatchInterval = null;
+    let phone = null;
+    let cachedStreams = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const isIframe = window.self !== window.top;
+
+      if (isIframe && window.PhoneSDK) {
+        try {
+          phone = PhoneSDK.createPhoneSDK();
+          
+          const readyPromise = phone.whenReady();
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SDK_TIMEOUT")), 2000));
+
+          Promise.race([readyPromise, timeoutPromise]).then(function (ctx) {
+            var r = document.documentElement.style;
+            if (ctx && ctx.theme) {
+              if (ctx.theme.label) r.setProperty("--label", ctx.theme.label);
+              if (ctx.theme.secondaryLabel) r.setProperty("--label-2", ctx.theme.secondaryLabel);
+              if (ctx.theme.background) r.setProperty("--bg", ctx.theme.background);
+              if (ctx.theme.accent) r.setProperty("--accent", ctx.theme.accent);
+            }
+
+            if (ctx && ctx.characterId) {
+              document.getElementById("charInfo").textContent = "Karakter #" + ctx.characterId;
+              document.getElementById("streamAuthor").value = "Karakter #" + ctx.characterId;
+            } else {
+              document.getElementById("charInfo").textContent = "Hazır";
+            }
+          }).catch(err => {
+            phone = null;
+            document.getElementById("charInfo").textContent = "Web Modu";
+          });
+        } catch (e) {
+          phone = null;
+          document.getElementById("charInfo").textContent = "Web Modu";
+        }
+      } else {
+        phone = null;
+        document.getElementById("charInfo").textContent = "Web Modu";
+      }
+
+      loadStreams();
+      setInterval(loadStreams, 4000);
+    });
+
+    function showError(msg) {
+      const errBox = document.getElementById('formError');
+      errBox.innerText = msg;
+      errBox.style.display = 'block';
+    }
+
+    function hideError() {
+      const errBox = document.getElementById('formError');
+      errBox.innerText = '';
+      errBox.style.display = 'none';
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+      if (tabName === 'discover') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('discoverPanel').classList.add('active');
+        loadStreams();
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('panelPanel').classList.add('active');
+      }
+    }
+
+    function loadStreams() {
+      fetch(API_BASE, { cache: 'no-store' })
+      .then(res => {
+        if (!res.ok) throw new Error("API Hatası: " + res.status);
+        return res.json();
+      })
+      .then(streams => {
+        cachedStreams = streams || [];
+        const listDiv = document.getElementById('streamsList');
+        if (!streams || !Array.isArray(streams) || streams.length === 0) {
+          listDiv.innerHTML = '<div class="no-streams">Şu an aktif yayın bulunmuyor</div>';
+          return;
+        }
+
+        listDiv.innerHTML = streams.map(s => `
+          <div class="stream-card">
+            <div class="stream-info">
+              <div class="stream-title">${escapeHtml(s.title)} ${s.id === currentStreamId ? '<small style="color:var(--accent);">(Siz)</small>' : ''}</div>
+              <div class="stream-meta">${escapeHtml(s.author || 'Yayıncı')} • ${escapeHtml(s.category || 'Genel')}</div>
+            </div>
+            ${s.id !== currentStreamId ? `
+              <button class="secondary" style="min-height: 36px; padding: 0 10px; font-size: 12px;" onclick="watchStream('${s.id}')">Katıl</button>
+            ` : ''}
+          </div>
+        `).join('');
+      })
+      .catch(err => {
+        console.error("Yayın çekme hatası:", err);
+      });
+    }
+
+    async function startStream() {
+      hideError();
+      const title = document.getElementById('streamTitle').value.trim();
+      const author = document.getElementById('streamAuthor').value.trim() || 'Yayıncı';
+      const category = document.getElementById('streamCategory').value.trim() || 'Genel';
+
+      if (!title) {
+        showError('Lütfen bir yayın başlığı girin!');
+        return;
+      }
+
+      const btn = document.getElementById('btnStartStream');
+      btn.disabled = true;
+      btn.innerText = "Başlatılıyor...";
+
+      let realBroadcastId = 'web_' + Math.floor(Math.random() * 1000000);
+
+      if (phone && phone.live) {
+        try {
+          const sdkPromise = phone.live.startBroadcast({ title: title });
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("SDK_TIMEOUT")), 2500));
+          
+          const res = await Promise.race([sdkPromise, timeoutPromise]);
+          if (res && res.broadcastId) {
+            realBroadcastId = res.broadcastId;
+          }
+        } catch (e) {
+          if (e.message !== "SDK_TIMEOUT") {
+            btn.disabled = false;
+            btn.innerText = "Yayını Başlat";
+            if (e.code === 'USER_DENIED') {
+              showError("Yayın isteği reddedildi.");
+              return;
+            } else if (e.code === 'PERMISSION_DENIED') {
+              showError("Eksik İzin: 'live.broadcast' izni gerekiyor.");
+              return;
+            } else {
+              showError("SDK Hatası: " + (e.code || e.message));
+              return;
+            }
+          }
+        }
+      }
+
+      currentStreamId = realBroadcastId;
+
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: currentStreamId, title, author, category })
+        });
+
+        const data = await res.json();
+
+        if (data && data.success) {
+          document.getElementById('statusBar').style.display = 'flex';
+          document.getElementById('statusText').innerText = `● YAYIN: ${title}`;
+
+          if (pingInterval) clearInterval(pingInterval);
+          pingInterval = setInterval(() => {
+            fetch(API_BASE, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: currentStreamId, isPing: true })
+            }).catch(err => console.error("Ping hatası:", err));
+          }, 3000);
+
+          startFrameBroadcaster(currentStreamId);
+
+          switchTab('discover');
+        } else {
+          showError("Hata: " + (data.error || "Bilinmeyen hata"));
+        }
+      } catch (err) {
+        showError("Bağlantı Hatası: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Yayını Başlat";
+      }
+    }
+
+    function startFrameBroadcaster(streamId) {
+      if (frameSendInterval) clearInterval(frameSendInterval);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 160;
+      canvas.height = 90;
+      const ctx = canvas.getContext('2d');
+
+      frameSendInterval = setInterval(() => {
+        const videoElement = document.querySelector('video') || document.querySelector('canvas');
+        if (!videoElement) return;
+
+        try {
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          const base64Frame = canvas.toDataURL('image/jpeg', 0.2);
+
+          fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: streamId, frame: base64Frame })
+          }).catch(() => {});
+        } catch (e) {}
+      }, 700);
+    }
+
+    async function watchStream(broadcastId) {
+      hideError();
+
+      if (phone && phone.live && !broadcastId.startsWith('web_')) {
+        try {
+          await phone.live.watch({ broadcastId: broadcastId });
+          return;
+        } catch (e) {
+          console.warn("SDK izleme hatası, web frame moduna geçiliyor...", e);
+        }
+      }
+
+      const streamObj = cachedStreams.find(s => s.id === broadcastId);
+      document.getElementById('playerTitle').innerText = streamObj ? streamObj.title : 'Canlı Yayın';
+      document.getElementById('playerModal').style.display = 'flex';
+
+      if (frameWatchInterval) clearInterval(frameWatchInterval);
+
+      frameWatchInterval = setInterval(() => {
+        fetch(`${API_BASE}?frameId=${broadcastId}`, { cache: 'no-store' })
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.frame) {
+              document.getElementById('streamFrameImg').src = data.frame;
+            }
+          })
+          .catch(() => {});
+      }, 700);
+    }
+
+    function closePlayer() {
+      document.getElementById('playerModal').style.display = 'none';
+      if (frameWatchInterval) clearInterval(frameWatchInterval);
+      frameWatchInterval = null;
+    }
+
+    async function stopStream() {
+      if (!currentStreamId) return;
+
+      if (phone && phone.live) {
+        try {
+          await phone.live.leave();
+        } catch (e) {
+          console.warn("SDK Leave hatası:", e);
+        }
+      }
+
+      fetch(`${API_BASE}?id=${currentStreamId}`, { method: 'DELETE' })
+      .then(() => cleanupStream())
+      .catch(() => cleanupStream());
+    }
+
+    function cleanupStream() {
+      if (pingInterval) clearInterval(pingInterval);
+      if (frameSendInterval) clearInterval(frameSendInterval);
+      pingInterval = null;
+      frameSendInterval = null;
+      currentStreamId = null;
+      document.getElementById('statusBar').style.display = 'none';
+      loadStreams();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
